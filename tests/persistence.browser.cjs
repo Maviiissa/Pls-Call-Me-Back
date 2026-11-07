@@ -25,6 +25,8 @@ const URL=process.env.GAME_URL||'http://127.0.0.1:8000',KEY='pheem.plot1.v1';
  // Restore a selected branch and an already-published post from pre-persistence saves.
  const branch={...base,state:'plot3_parn_call_unlocked',callDone:true,plot3_branch:'miss_you',ui:{app:'line',contact:'parn'},plot3:{scene:2,event:8,playerIndex:0,scene1Completed:true,postPublished:true,parnUnlocked:true,introCompleted:true,segment:'miss_you',branch:'miss_you',parnCallReady:true,currentDate:'2026年6月28日 23:18',nodes:[]}};
  const r=await pageFor(branch);assert.equal(await r.locator('.time').textContent(),'23:18');assert.equal(await r.evaluate(()=>PHEEM_INSTAGRAM.posts.length),1);assert.equal(await r.getByRole('button',{name:'拨打Parn电话'}).isEnabled(),true);await r.reload();assert.equal((await read(r)).plot3_branch,'miss_you');assert.equal(await r.locator('.plot3-choices').isVisible(),false);assert.equal(await r.evaluate(()=>PHEEM_INSTAGRAM.posts.length),1);
+ // Instagram app restoration waits for its deferred script and retains its post.
+ const ig=await pageFor({...branch,ui:{app:'instagram'}});assert.equal(await ig.locator('#instagram-app').isVisible(),true);assert.equal(await ig.locator('[data-ig-stat="posts"]').textContent(),'1');await ig.reload();assert.equal(await ig.locator('#instagram-app').isVisible(),true);assert.equal(await ig.evaluate(()=>PHEEM_INSTAGRAM.posts.length),1);await ig.context().close();
  // In-progress draft animation resumes its frame rather than playing from the start.
  await r.context().close();
  const intro={...base,state:'plot3_parn_chat_unlocked',ui:{app:'line',contact:'parn'},plot3:{scene:2,event:4,playerIndex:0,scene1Completed:true,postPublished:true,parnUnlocked:true,nodes:[]}};

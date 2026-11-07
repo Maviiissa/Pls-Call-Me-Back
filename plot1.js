@@ -46,14 +46,14 @@ let draft='',draftContact='';
 const beforeContact=['我找秘书问Techin电话','我自己去问他'];
 const beforeContactSent=()=>s.messages.filter(m=>m.id.startsWith('player-before-contact-')).length;
 const follow=['……是我误会了。','我去问了Techin。','还能怎么办。','Techin给了我她蛋糕店的地址和FB','你帮我群里说一声，明天请大家吃蛋糕','不许有任何人拒绝'];
-function preset(){if(s.queue.length)return '';if(s.plot3)return plot3Preset();if(currentLineContact==='thanwa'){
+function preset(){if(s.queue.length)return '';if(s.plot4)return plot4Preset();if(s.plot3)return plot3Preset();if(currentLineContact==='thanwa'){
  if(s.state==='plot2_thanwa_completed')return window.PLOT2_DATA.pheem[s.plot2.lineStep]||'';
  if(s.state==='plot1_thanwa_notification')return '？？';
  if(s.state==='plot1_thanwa_replied')return beforeContact[beforeContactSent()]||'';
  if(['plot1_call_completed','plot1_thanwa_followup'].includes(s.state))return follow[s.step]||'';
  }if(currentLineContact==='secretary'&&s.state==='plot1_thanwa_replied'&&beforeContactSent()===beforeContact.length)return '把Techin的电话给我';return ''}
 function compose(){draft='';input.textContent=s.plot3?.animation?animationText():((preset()||(s.plot3?.awaitMorning&&visible('parn')))?'点击输入回复':'Aa');send.disabled=true;}
-function fill(){if(s.plot3?.awaitMorning&&visible('parn')){if(!p3().animation)animateDrafts('morning',window.PLOT3_BRANCHES.morningDrafts,[1500,1500,2000]);return}draft=preset();draftContact=currentLineContact;if(draft){input.textContent=draft;send.disabled=false}}
+function fill(){if(!s.plot4&&s.plot3?.awaitMorning&&visible('parn')){if(!p3().animation)animateDrafts('morning',window.PLOT3_BRANCHES.morningDrafts,[1500,1500,2000]);return}draft=preset();draftContact=currentLineContact;if(draft){input.textContent=draft;send.disabled=false}}
 input.onclick=fill;input.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fill()}};
 function visible(c){return lineApp.classList.contains('open')&&!lineChat.hidden&&currentLineContact===c}
 function renderExtra(c){
@@ -79,7 +79,7 @@ function updateChatList(){
   const row=document.querySelector('#line-'+c),last=s.messages.filter(m=>m.contact===c).at(-1);
   if(!last)continue;
   row.querySelector('.line-contact-copy p').textContent=last.image?'[图片]':last.card?'[联系人] Khun Techin':last.text;
-  row.querySelector('time').textContent=last.date.includes('29日')?'29 Jun':last.date.includes('28日')?last.date.split(' ').at(-1):last.date.includes('26日')?'26 Jun':'20:35';
+  row.querySelector('time').textContent=last.date.includes('30日')?'14:26':last.date.includes('29日')?'29 Jun':last.date.includes('28日')?last.date.split(' ').at(-1):last.date.includes('26日')?'26 Jun':'20:35';
   let badge=row.querySelector('.plot-unread-count');if(!badge){badge=el('span','plot-unread-count');row.append(badge)}
   const count=s.unreadCounts[c]||0;badge.textContent=String(count);badge.hidden=!count;
   row.setAttribute('aria-label',row.querySelector('strong').textContent+'，'+(last.image?'图片':last.card?'联系人卡片':last.text)+(count?'，'+count+'条未读':''));
@@ -93,17 +93,18 @@ function updateNotification(){updateTyping();updateChatList();
  s.unread=!!latest;notification.dataset.contact=contact;notification.hidden=!latest||visible(contact);notification.setAttribute('aria-label','打开'+lineContactNames[contact]+'的新LINE消息');notification.textContent='LINE · '+lineContactNames[contact]+'\n'+(latest?.image?'[图片]':latest?.text||'新消息');
  for(const c of ['thanwa','parn','secretary'])document.querySelector('#line-'+c).classList.toggle('plot-unread',(s.unreadCounts?.[c]||0)>0)
 }
-notification.onclick=()=>{const sms=document.querySelector('#messages-app');if(sms){sms.hidden=true;sms.inert=true}if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app','instagram-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id!=='photos-app')n.inert=true}openLine();openLineChat(notification.dataset.contact||'thanwa')};
+notification.onclick=()=>{if(!lineViewer.hidden)closeLinePhoto();const sms=document.querySelector('#messages-app');if(sms){sms.hidden=true;sms.inert=true}if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app','instagram-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id!=='photos-app')n.inert=true}openLine();openLineChat(notification.dataset.contact||'thanwa')};
 function add(m){if(!m.me)lastIncomingAt=Date.now();if(!s.messages.some(x=>x.id===m.id)){s.messages.push(m);if(!m.me&&!visible(m.contact)){s.unreadCounts=s.unreadCounts||{};s.unreadCounts[m.contact]=(s.unreadCounts[m.contact]||0)+1}}if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
 function schedule(contact,texts,delay,done,typing=true){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
  if(s.startedAt&&s.state==='plot1_exploration'&&Date.now()-s.startedAt>=EXPLORATION_DELAY_MS){state('plot1_thanwa_notification');schedule('thanwa',['？','Techin？','他不是Gay吗？'],0,'intro')}
- while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:m.date||'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='plot3-turn')finishPlot3Turn();if(m.done==='plot2-intro')mark2('plot2_thanwa_completed');if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
- updateNotification();processPlot2();processPlot3();
+ while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:m.date||'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='plot4-turn')finishPlot4Turn();if(m.done==='plot3-turn')finishPlot3Turn();if(m.done==='plot2-intro')mark2('plot2_thanwa_completed');if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
+ updateNotification();processPlot2();processPlot3();processPlot4();
 }
 new MutationObserver(()=>{if(phone.classList.contains('unlocked')&&!s.startedAt){s.startedAt=Date.now();save()}}).observe(phone,{attributes:true,attributeFilter:['class']});
 const originalUnlock=unlock;unlock=function(){originalUnlock();if(!s.startedAt){s.startedAt=Date.now();save()}};
 send.onclick=()=>{if(!draft||draftContact!==currentLineContact||draft!==preset())return;const c=currentLineContact,text=draft;
+ if(s.plot4){sendPlot4(text);return}
  if(s.plot3){sendPlot3(text);return}
  const isPlot2=c==='thanwa'&&s.state==='plot2_thanwa_completed';
  const isBeforeContact=c==='thanwa'&&s.state==='plot1_thanwa_replied';
@@ -340,10 +341,47 @@ function finishPlot3Segment(){
  compose()
 }
 
+// Plot 4 uses the same message store, queue, renderer, input and notifications.
+const p4=()=>s.plot4;
+function mark4(node){if(!p4().nodes.includes(node))p4().nodes.push(node);state(node)}
+function plot4Contact(){return p4().scene===2||p4().scene===3?'secretary':p4().scene===5?'parn':'thanwa'}
+function plot4Turn(){return p4()&&window.PLOT4_DATA['scene'+p4().scene]?.[p4().event]}
+function plot4Preset(){const turn=plot4Turn();return !p4().completed&&currentLineContact===plot4Contact()&&turn?.from==='me'?(turn.messages[p4().playerIndex]||''):''}
+function applyPlot4Date(){
+ const match=p4().date.match(/2026年6月(\d+)日 (\d+:\d+)/),day=Number(match[1]),time=match[2];
+ const weekday=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(Date.UTC(2026,5,day)).getUTCDay()];
+ document.querySelector('.date').textContent=weekday+', '+day+' June 2026';document.querySelector('.time').textContent=time;document.querySelector('.day').textContent=weekday.toUpperCase();document.querySelector('.daynum').textContent=String(day);lock.setAttribute('aria-label','锁屏，'+p4().date+'。向上滑动解锁');document.querySelector('.calendar').setAttribute('aria-label',p4().date);
+ for(const n of document.querySelectorAll('.status>span:first-child,.photos-status>span:first-child,.sms-status>span:first-child'))if(n.textContent!=='Wi-Fi Call')n.textContent=time
+}
+function begin4(){s.plot4={scene:1,event:0,playerIndex:0,date:s.plot3?.currentDate||window.PLOT3_DATA.date,nodes:[],completed:false};mark4('plot4_started');enterPlot4Turn()}
+function enterPlot4Turn(initialDelay=3000){
+ const turn=plot4Turn();
+ if(!turn){
+  mark4('plot4_scene'+p4().scene+'_completed');
+  if(p4().scene===2)p4().orderCompleted=true;
+  if(p4().scene===3)p4().flowersReturned=true;
+  if(p4().scene===5){p4().completed=true;mark4('plot4_completed');compose();return}
+  p4().scene++;p4().event=0;p4().playerIndex=0;
+  if(p4().scene===3){p4().date='2026年6月30日 14:26';applyPlot4Date()}
+  save();enterPlot4Turn(p4().scene===4||p4().scene===5?5000:3000);return
+ }
+ if(turn.from!=='me'){
+  const due=Date.now()+initialDelay;
+  s.queue=turn.messages.map((text,i)=>({id:'plot4-s'+p4().scene+'-e'+p4().event+'-'+i,contact:turn.from,text,date:p4().date,due:due+i*1000,typing:true,typingAt:due-3000,done:i===turn.messages.length-1?'plot4-turn':null}));save()
+ }compose()
+}
+function finishPlot4Turn(){p4().event++;p4().playerIndex=0;save();enterPlot4Turn()}
+function sendPlot4(text){
+ const turn=plot4Turn();add({id:'plot4-player-s'+p4().scene+'-e'+p4().event+'-'+p4().playerIndex,contact:plot4Contact(),text,me:true,date:p4().date});
+ p4().playerIndex++;save();if(p4().playerIndex===turn.messages.length)finishPlot4Turn();else compose()
+}
+function processPlot4(){if(!p4()&&(s.plot3?.completed||s.state==='plot3_completed')&&!s.queue.length)begin4()}
+
 window.addEventListener('keydown',e=>{if(!call.hidden&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation()}},true);
 window.addEventListener('pagehide',()=>{save();clearAudio()});
 function restoreGame(){
- if(s.plot3){const match=(s.plot3.currentDate||window.PLOT3_DATA.date).match(/6月(\d+)日 (\d+:\d+)/);applyPlot3Date(match?Number(match[1]):28,match?match[2]:'15:34')}
+ if(s.plot4)applyPlot4Date();
+ else if(s.plot3){const match=(s.plot3.currentDate||window.PLOT3_DATA.date).match(/6月(\d+)日 (\d+:\d+)/);applyPlot3Date(match?Number(match[1]):28,match?match[2]:'15:34')}
  else if(s.plot2?.orderActive)applyOrderDate();
  const ui=resumeUi||{app:'lock'};
  if(ui.app!=='lock')unlock();
@@ -362,5 +400,5 @@ function restoreGame(){
 }
 // Pending replies keep their absolute deadlines; rendered UI waits for all app scripts.
 setInterval(process,200);process();compose();
-if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',restoreGame,{once:true});else queueMicrotask(restoreGame);
+if(document.readyState!=='complete')window.addEventListener('DOMContentLoaded',restoreGame,{once:true});else queueMicrotask(restoreGame);
 })();

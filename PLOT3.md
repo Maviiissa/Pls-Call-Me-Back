@@ -1,6 +1,6 @@
 # Plot 3
 
-Plot 3 uses the existing story object and localStorage key in plot1.js. Progress persists across refreshes in the same browser. App navigation retains messages, pending replies, animations and the selected branch. No Plot 4 scene is defined or triggered.
+Plot 3 uses the existing story object and localStorage key in plot1.js. Progress persists across refreshes in the same browser. App navigation retains messages, pending replies, animations and the selected branch. The completed Plot 3 now hands off to Plot 4 through the shared story tick.
 
 ## Existing scenes
 
@@ -14,7 +14,7 @@ The original index.html history, including the June 17 breakup, is untouched apa
 - `miss_you`: the clock becomes June 28, 23:18. After the supplied late-night chat, the existing phone icon becomes active for Parn. The existing single phone screen dials for three seconds, plays the full source recording, and uses audio currentTime for subtitles and call time. End before the final scripted line stops media, returns to Parn, and permits retry without unlocking morning. Natural completion or pressing End after the final scripted line disables replay and returns to Parn. The composer explicitly shows 点击输入回复; clicking it starts the three unsent morning drafts directly, without requiring app navigation. Only after those drafts finish does the date become June 29, 10:42 and the next 点击输入回复 fill 醒了？ for manual sending. The final Parn replies complete the branch.
 - `cake`: player messages remain manual. The three unsent drafts after the final …… play before merging.
 
-Every branch joins the supplied Thanwa ending. The player must send 我不知道。 to complete Plot 3. Choices cannot be reopened, no completion modal is shown, and free exploration remains available.
+Every branch joins the supplied Thanwa ending. The player must send 我不知道。 to complete Plot 3. Choices cannot be reopened, no completion modal is shown, and the shared story tick can begin the supplied Plot 4 continuation.
 
 ## Full Parn recording and subtitles
 
@@ -47,7 +47,7 @@ Shared call code now selects the Techin or Parn configuration without creating a
 
 ## Validation
 
-See tests/README.md and tests/plot3.browser.cjs for repeatable routes. Each route runs through Plot 1, Plot 2, the original Plot 3 scenes, the intro animation, one branch and the common ending. Checks cover app switching during animation and replies, manual sending, immutable selection, no draft bubbles, existing breakup text, photo viewer, Instagram deduplication, correct dates, branch-specific phone access, early End/retry, speaker captions, natural audio ending, morning continuation, no Plot 4, no duplicate messages, and refresh persistence. The range-aware local server supports audio seeking just as static hosting does.
+See tests/README.md and tests/plot3.browser.cjs for repeatable routes. Each route runs through Plot 1, Plot 2, the original Plot 3 scenes, the intro animation, one branch and the common ending. Checks cover app switching during animation and replies, manual sending, immutable selection, no draft bubbles, existing breakup text, photo viewer, Instagram deduplication, correct dates, branch-specific phone access, early End/retry, speaker captions, natural audio ending, morning continuation, the one-time Plot 4 handoff, no duplicate messages, and refresh persistence. The range-aware local server supports audio seeking just as static hosting does.
 
 ## Post-call continuation fix
 
