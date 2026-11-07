@@ -1,6 +1,10 @@
 (()=>{
 'use strict';
-const KEY='pheem.plot1.v1';
+// Set false for release: restore saved progress instead of restarting on refresh.
+const TEST_MODE=true;
+const EXPLORATION_DELAY_MS=20000;
+const KEY=TEST_MODE?'pheem.plot1.test.v1':'pheem.plot1.v1';
+if(TEST_MODE)localStorage.removeItem(KEY);
 let s;try{s=JSON.parse(localStorage.getItem(KEY))}catch{};
 s=s||{state:'plot1_exploration',startedAt:null,messages:[],queue:[],step:0,unread:false,callElapsed:0};
 const save=()=>localStorage.setItem(KEY,JSON.stringify(s));
@@ -40,7 +44,7 @@ notification.onclick=()=>{if(!phone.classList.contains('unlocked'))unlock();for(
 function add(m){if(!s.messages.some(x=>x.id===m.id))s.messages.push(m);if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
 function schedule(contact,texts,delay,done,typing=false){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
- if(s.startedAt&&s.state==='plot1_exploration'&&Date.now()-s.startedAt>=60000){state('plot1_thanwa_notification');schedule('thanwa',['？','Techin？','他不是Gay吗？'],0,'intro')}
+ if(s.startedAt&&s.state==='plot1_exploration'&&Date.now()-s.startedAt>=EXPLORATION_DELAY_MS){state('plot1_thanwa_notification');schedule('thanwa',['？','Techin？','他不是Gay吗？'],0,'intro')}
  while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
  typing.hidden=!(visible(currentLineContact)&&s.queue[0]?.contact===currentLineContact&&s.queue[0]?.typing&&Date.now()>=s.queue[0].due-1000);updateNotification();
 }
