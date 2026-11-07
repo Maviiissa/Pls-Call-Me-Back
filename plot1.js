@@ -19,14 +19,14 @@ const lineContactNames={thanwa:'Thanwa',secretary:'S（秘书）',dad:'Dad',parn
 function updateTyping(){
  if(lineChat.hidden)return;
  const next=s.queue[0],now=Date.now();
- const writing=visible(currentLineContact)&&next?.contact===currentLineContact&&next.typing&&now>=next.due-1000&&now-lastIncomingAt>=300;
+ const writing=visible(currentLineContact)&&next?.contact===currentLineContact&&next.typing&&now>=(next.typingAt??next.due-1000)&&now-lastIncomingAt>=300;
  document.querySelector('#line-heading').textContent=writing?'正在输入....':lineContactNames[currentLineContact]||'Chats';
 }
 let draft='',draftContact='';
 const beforeContact=['我找秘书问Techin电话','我自己去问他'];
 const beforeContactSent=()=>s.messages.filter(m=>m.id.startsWith('player-before-contact-')).length;
 const follow=['……是我误会了。','我去问了Techin。','还能怎么办。','Techin给了我她蛋糕店的地址和FB','你帮我群里说一声，明天请大家吃蛋糕','不许有任何人拒绝'];
-function preset(){if(s.queue.length)return '';if(currentLineContact==='thanwa'){
+function preset(){if(s.queue.length)return '';if(s.plot3)return plot3Preset();if(currentLineContact==='thanwa'){
  if(s.state==='plot2_thanwa_completed')return window.PLOT2_DATA.pheem[s.plot2.lineStep]||'';
  if(s.state==='plot1_thanwa_notification')return '？？';
  if(s.state==='plot1_thanwa_replied')return beforeContact[beforeContactSent()]||'';
@@ -42,9 +42,11 @@ function renderExtra(c){
  if(m.date!==date){const d=el('div','line-date',m.date);d.dataset.plot1='';lineHistory.append(d);date=m.date}
  const row=el('div','line-row '+(m.me?'me':c));row.dataset.plot1=m.id;
  if(!m.me){const a=el('img','line-avatar');a.src=c==='thanwa'?'assets/thanwa-line-avatar.jpg':'assets/secretary-line-avatar.jpg';a.alt='';row.append(a)}
- const bubble=el('div','line-bubble');
- if(m.card){bubble.classList.add('plot-contact');bubble.append(el('strong','','Khun Techin'),el('div','','+66 33 222 1166'));const b=el('button','','拨打电话');b.disabled=s.callDone;b.onclick=startCall;bubble.append(b)}else bubble.textContent=m.text;
- const meta=el('div','line-meta',m.me?'Read':'20:35');if(m.me)row.append(meta,bubble);else row.append(bubble,meta);lineHistory.append(row)
+ let bubble=el('div','line-bubble');
+ if(m.image){
+ const photo=el('button','line-photo');photo.setAttribute('aria-label','查看500份蛋糕照片');const image=el('img','');image.src=m.image;image.alt=m.alt||'蛋糕照片';photo.append(image);photo.onclick=()=>{lineViewer.querySelector('img').src=m.image;lineViewer.querySelector('img').alt=image.alt;lineViewer.hidden=false;lineViewer.inert=false;lineApp.querySelector('.line-body').inert=true;lineApp.querySelector('.line-home').inert=true;lineViewer.querySelector('button').focus()};bubble=photo;
+ }else if(m.card){bubble.classList.add('plot-contact');bubble.append(el('strong','','Khun Techin'),el('div','','+66 33 222 1166'));const b=el('button','','拨打电话');b.disabled=s.callDone;b.onclick=startCall;bubble.append(b)}else bubble.textContent=m.text;
+ const meta=el('div','line-meta',m.me?'Read':m.date.split(' ').at(-1));if(m.me)row.append(meta,bubble);else row.append(bubble,meta);lineHistory.append(row)
  }
  updateTyping();compose();
 }
@@ -56,28 +58,29 @@ function updateChatList(){
  for(const c of contacts){
   const row=document.querySelector('#line-'+c),last=s.messages.filter(m=>m.contact===c).at(-1);
   if(!last)continue;
-  row.querySelector('.line-contact-copy p').textContent=last.card?'[联系人] Khun Techin':last.text;
-  row.querySelector('time').textContent=last.date.includes('26日')?'26 Jun':'20:35';
+  row.querySelector('.line-contact-copy p').textContent=last.image?'[图片]':last.card?'[联系人] Khun Techin':last.text;
+  row.querySelector('time').textContent=last.date.includes('28日')?'15:34':last.date.includes('26日')?'26 Jun':'20:35';
   let badge=row.querySelector('.plot-unread-count');if(!badge){badge=el('span','plot-unread-count');row.append(badge)}
   const count=s.unreadCounts[c]||0;badge.textContent=String(count);badge.hidden=!count;
-  row.setAttribute('aria-label',row.querySelector('strong').textContent+'，'+(last.card?'联系人卡片':last.text)+(count?'，'+count+'条未读':''));
+  row.setAttribute('aria-label',row.querySelector('strong').textContent+'，'+(last.image?'图片':last.card?'联系人卡片':last.text)+(count?'，'+count+'条未读':''));
  }
  // Move the most recently active conversations above the unchanged historical rows.
  const order=[...contacts].filter(c=>s.messages.some(m=>m.contact===c)).sort((a,b)=>s.messages.findLastIndex(m=>m.contact===b)-s.messages.findLastIndex(m=>m.contact===a));
  for(const c of order.reverse()){const row=document.querySelector('#line-'+c),first=lineList.querySelector('.line-contact');if(row!==first)lineList.insertBefore(row,first)}
 }
-function updateNotification(){updateTyping();updateChatList();notification.hidden=!s.unread||visible('thanwa');notification.textContent='LINE · Thanwa\n'+(s.messages.filter(m=>m.contact==='thanwa'&&!m.me).at(-1)?.text||'新消息');document.querySelector('#line-thanwa').classList.toggle('plot-unread',s.unread)}
-notification.onclick=()=>{if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app','instagram-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id!=='photos-app')n.inert=true}openLine();openLineChat('thanwa')};
+function updateNotification(){updateTyping();updateChatList();notification.hidden=!s.unread||visible('thanwa');const latest=s.messages.filter(m=>m.contact==='thanwa'&&!m.me).at(-1);notification.textContent='LINE · Thanwa\n'+(latest?.image?'[图片]':latest?.text||'新消息');document.querySelector('#line-thanwa').classList.toggle('plot-unread',s.unread)}
+notification.onclick=()=>{const sms=document.querySelector('#messages-app');if(sms){sms.hidden=true;sms.inert=true}if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app','instagram-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id!=='photos-app')n.inert=true}openLine();openLineChat('thanwa')};
 function add(m){if(!m.me)lastIncomingAt=Date.now();if(!s.messages.some(x=>x.id===m.id)){s.messages.push(m);if(!m.me&&!visible(m.contact)){s.unreadCounts=s.unreadCounts||{};s.unreadCounts[m.contact]=(s.unreadCounts[m.contact]||0)+1}}if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
 function schedule(contact,texts,delay,done,typing=true){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
  if(s.startedAt&&s.state==='plot1_exploration'&&Date.now()-s.startedAt>=EXPLORATION_DELAY_MS){state('plot1_thanwa_notification');schedule('thanwa',['？','Techin？','他不是Gay吗？'],0,'intro')}
- while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='plot2-intro')mark2('plot2_thanwa_completed');if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
- updateNotification();processPlot2();
+ while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:m.date||'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='plot3-turn')finishPlot3Turn();if(m.done==='plot2-intro')mark2('plot2_thanwa_completed');if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
+ updateNotification();processPlot2();processPlot3();
 }
 new MutationObserver(()=>{if(phone.classList.contains('unlocked')&&!s.startedAt){s.startedAt=Date.now();save()}}).observe(phone,{attributes:true,attributeFilter:['class']});
 const originalUnlock=unlock;unlock=function(){originalUnlock();if(!s.startedAt){s.startedAt=Date.now();save()}};
 send.onclick=()=>{if(!draft||draftContact!==currentLineContact||draft!==preset())return;const c=currentLineContact,text=draft;
+ if(s.plot3){sendPlot3(text);return}
  const isPlot2=c==='thanwa'&&s.state==='plot2_thanwa_completed';
  const isBeforeContact=c==='thanwa'&&s.state==='plot1_thanwa_replied';
  const isFollow=c==='thanwa'&&['plot1_call_completed','plot1_thanwa_followup'].includes(s.state);
@@ -214,6 +217,41 @@ function processPlot2(){
  updateOrderTyping();
 }
 window.addEventListener('keydown',e=>{if(!messagesApp.hidden&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(smsChatOpen){smsChatOpen=false;renderSms()}else closeMessages()}},true);
+
+// Plot 3 is a turn-based extension of the existing shared LINE queue/save.
+const p3=()=>s.plot3;
+function mark3(node){if(!p3().nodes.includes(node))p3().nodes.push(node);state(node)}
+function applyPlot3Date(){
+ document.querySelector('.date').textContent='Sunday, 28 June 2026';document.querySelector('.time').textContent='15:34';document.querySelector('.day').textContent='SUNDAY';document.querySelector('.daynum').textContent='28';
+ lock.setAttribute('aria-label','锁屏，2026年6月28日，15:34。向上滑动解锁');document.querySelector('.calendar').setAttribute('aria-label','2026年6月28日 星期日。Meeting 上午9:45。明天 Annual Meet 10:30');
+ for(const n of document.querySelectorAll('.status>span:first-child,.photos-status>span:first-child,.sms-status>span:first-child'))if(n.textContent!=='Wi-Fi Call')n.textContent='15:34'
+}
+function plot3Turn(){return p3()&&window.PLOT3_DATA['scene'+p3().scene]?.[p3().event]}
+function plot3Preset(){const turn=plot3Turn();return currentLineContact==='thanwa'&&turn?.from==='me'?(turn.messages[p3().playerIndex]||''):''}
+function begin3(){s.plot3={scene:1,event:0,playerIndex:0,scene1Completed:false,postPublished:false,parnUnlocked:false,nodes:[]};mark3('plot3_started');applyPlot3Date();enterPlot3Turn()}
+function enterPlot3Turn(){
+ const turn=plot3Turn();if(!turn){
+  if(p3().scene===1){p3().scene1Completed=true;mark3('plot3_scene1_completed')}
+  else{p3().parnUnlocked=true;mark3('plot3_parn_unlocked')}
+  compose();return
+ }
+ if(turn.from==='thanwa'){
+  const now=Date.now(),id='plot3-s'+p3().scene+'-e'+p3().event;
+  s.queue=turn.messages.map((item,i)=>({id:id+'-'+i,contact:'thanwa',...(typeof item==='string'?{text:item}:item),date:window.PLOT3_DATA.date,due:now+3000+i*1000,typing:true,typingAt:now,done:i===turn.messages.length-1?'plot3-turn':null}));save()
+ }compose()
+}
+function finishPlot3Turn(){p3().event++;p3().playerIndex=0;save();enterPlot3Turn()}
+function sendPlot3(text){
+ const step=p3().playerIndex,turn=plot3Turn();
+ add({id:'plot3-player-s'+p3().scene+'-e'+p3().event+'-'+step,contact:'thanwa',text,me:true,date:window.PLOT3_DATA.date});
+ p3().playerIndex++;save();if(p3().playerIndex===turn.messages.length)finishPlot3Turn();else compose()
+}
+function publishPlot3Post(){
+ if(!p3()?.scene1Completed||p3().postPublished||!window.PheemInstagram)return;
+ window.PheemInstagram.addPost(window.PLOT3_DATA.post);p3().postPublished=true;p3().scene=2;p3().event=0;p3().playerIndex=0;mark3('plot3_instagram_posted');enterPlot3Turn()
+}
+window.addEventListener('instagram:opened',publishPlot3Post);
+function processPlot3(){if(s.state==='plot2_completed'&&!p3())begin3()}
 
 window.addEventListener('keydown',e=>{if(!call.hidden&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation()}},true);
 window.addEventListener('pagehide',()=>{save();clearAudio()});
