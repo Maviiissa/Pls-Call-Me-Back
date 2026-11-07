@@ -31,7 +31,7 @@
   .photos-home{height:5px;width:32%;margin:0 auto 3%;border-radius:99px;background:#a8a8ad}
   `;
   document.head.append(css);
-  const imageNames=['recent-delete-1.jpg','recent-delete-2.jpg','recent-delete-3.jpg','recent-delete-4.jpg','recent-delete-5.jpg'];
+  const imageNames=['photo1.jpg','photo2.jpg','photo3.jpg','photo4.jpg','photo5.jpg'];
   const images=imageNames.map(name=>'assets/'+name);
   const app=document.createElement('section');
   app.className='photos-app';app.id='photos-app';app.setAttribute('aria-label','Photos');
