@@ -1,0 +1,31 @@
+// Times are seconds from accepting the incoming call, not from an outbound dial.
+// Uses the original complete supplied M4A, without generated speech or re-encoding.
+window.PLOT6_CALL={audioSrc:'assets/parnplot6.m4a',holdAfterLast:2,subtitles:[
+ {id:'plot6-01',speaker:'Parn',text:'Pheem。',startTime:0.0,endTime:0.7},
+ {id:'plot6-02',speaker:'Pheem',text:'你还爱我吗？',startTime:0.7,endTime:2.3},
+ {id:'plot6-03',speaker:'Pheem',text:'Parn不爱我了吗？',startTime:3.0,endTime:4.2},
+ {id:'plot6-04',speaker:'Parn',text:'别再说了。',startTime:4.6,endTime:5.5},
+ {id:'plot6-05',speaker:'Pheem',text:'为什么不想说？',startTime:5.5,endTime:6.7},
+ {id:'plot6-06',speaker:'Parn',text:'我不是跟你说过了吗？我们就到这吧。',startTime:6.7,endTime:8.0},
+ {id:'plot6-07',speaker:'Pheem',text:'回答我，说你不爱我了。',startTime:8.0,endTime:9.9},
+ {id:'plot6-08',speaker:'Pheem',text:'如果你说得出口，我就不打扰你了。',startTime:9.9,endTime:12.4},
+ {id:'plot6-09',speaker:'Parn',text:'就算爱。',startTime:12.4,endTime:14.3},
+ {id:'plot6-10',speaker:'Parn',text:'也不可能了。',startTime:14.3,endTime:15.8},
+ {id:'plot6-11',speaker:'Pheem',text:'为什么不可能？',startTime:15.8,endTime:18.2},
+ {id:'plot6-12',speaker:'Parn',text:'我们的身份地位悬殊太大了。',startTime:18.2,endTime:20.0},
+ {id:'plot6-13',speaker:'Pheem',text:'你这样说，是因为我爸，对不对？',startTime:20.0,endTime:21.5},
+ {id:'plot6-14',speaker:'Parn',text:'你怎么知道的？',startTime:21.5,endTime:22.5},
+ {id:'plot6-15',speaker:'Pheem',text:'我为什么不能知道？',startTime:22.5,endTime:23.8},
+ {id:'plot6-16',speaker:'Pheem',text:'为什么不告诉我？',startTime:23.8,endTime:25.8},
+ {id:'plot6-17',speaker:'Parn',text:'如果你跟我在一起。',startTime:26.7,endTime:28.0},
+ {id:'plot6-18',speaker:'Parn',text:'别人会看不起你的。',startTime:28.0,endTime:29.7},
+ {id:'plot6-19',speaker:'Parn',text:'卖身女、风尘女这种标签。',startTime:29.7,endTime:31.9},
+ {id:'plot6-20',speaker:'Parn',text:'会永远印在我身上的。',startTime:32.7,endTime:34.2},
+ {id:'plot6-21',speaker:'Pheem',text:'那又怎样？',startTime:35.0,endTime:36.1},
+ {id:'plot6-22',speaker:'Parn',text:'就算你不在乎。',startTime:36.3,endTime:37.5},
+ {id:'plot6-23',speaker:'Parn',text:'但你身边的人。',startTime:37.5,endTime:39.4},
+ {id:'plot6-24',speaker:'Parn',text:'你整个社交圈的人都在乎。',startTime:39.4,endTime:41.2},
+ {id:'plot6-25',speaker:'Parn',text:'如果别人用那种眼光看你。',startTime:41.2,endTime:42.5},
+ {id:'plot6-26',speaker:'Parn',text:'因为你在跟我这种人交往，你受得了吗？',startTime:42.5,endTime:44.5},
+ {id:'plot6-27',speaker:'Pheem',text:'受得了，而且我根本不在乎。',startTime:44.6,endTime:46.4}
+]};

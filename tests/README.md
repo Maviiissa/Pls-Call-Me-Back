@@ -44,4 +44,13 @@ Plot 5 and its strictly one-way Parn monologue:
 CHROMIUM_PATH=/usr/bin/chromium node tests/plot5.browser.cjs
 ```
 
-Covers all 66 new bubbles, the actual 15 supplied monologue lines, the Plot 4 final-message gate, Dad's existing thread/avatar, all player sends, 3s/5s deadlines, date/clock updates, mid-reply refresh, lock and app switching, retained history, and no Parn response/typing/call or Plot 6 after completion. Plot 4's tests now check the Plot 5 handoff rather than expecting no later plot.
+Covers all 66 new bubbles, the actual 15 supplied monologue lines, the Plot 4 final-message gate, Dad's existing thread/avatar, all player sends, 3s/5s deadlines, date/clock updates, mid-reply refresh, lock and app switching, retained history, and no Parn response/typing/call before Plot 5 completion. The separate Plot 6 incoming is now checked after completion. Plot 4's tests now check the Plot 5 handoff rather than expecting no later plot.
+
+Plot 6 incoming, timeline and complete audio:
+
+```sh
+CHROMIUM_PATH=/usr/bin/chromium node tests/plot6.browser.cjs
+CHROMIUM_PATH=/usr/bin/chromium node tests/plot6-audio.browser.cjs
+```
+
+The first test substitutes only audioSrc for a virtual subtitle clock, enabling precise boundary tests, app/lock coverage, refresh and pause/resume checks. The second uses the actual unmodified M4A with real playback for about 49 seconds and verifies all 27 subtitle transitions against media time. The persistence suite additionally covers Plot 6 audio position and silent-tail restoration.
