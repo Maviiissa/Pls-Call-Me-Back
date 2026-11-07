@@ -1,0 +1,38 @@
+name: Connect Photos app
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-photos.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Wire Photos interface
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          page=Path('index.html')
+          html=page.read_text(encoding='utf-8')
+          tag='<script src="photos.js" defer></script>'
+          if tag not in html:
+              html=html.replace('</body></html>',tag+'</body></html>')
+          if tag not in html:
+              raise RuntimeError('Unable to connect Photos app')
+          page.write_text(html,encoding='utf-8')
+          PY
+      - name: Commit Photos integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Enable Photos app on home screen"
+            git push
+          fi
