@@ -46,7 +46,7 @@ let draft='',draftContact='';
 const beforeContact=['我找秘书问Techin电话','我自己去问他'];
 const beforeContactSent=()=>s.messages.filter(m=>m.id.startsWith('player-before-contact-')).length;
 const follow=['……是我误会了。','我去问了Techin。','还能怎么办。','Techin给了我她蛋糕店的地址和FB','你帮我群里说一声，明天请大家吃蛋糕','不许有任何人拒绝'];
-function preset(){if(s.queue.length)return '';if(s.plot4)return plot4Preset();if(s.plot3)return plot3Preset();if(currentLineContact==='thanwa'){
+function preset(){if(s.queue.length)return '';if(s.plot5)return plot5Preset();if(s.plot4)return plot4Preset();if(s.plot3)return plot3Preset();if(currentLineContact==='thanwa'){
  if(s.state==='plot2_thanwa_completed')return window.PLOT2_DATA.pheem[s.plot2.lineStep]||'';
  if(s.state==='plot1_thanwa_notification')return '？？';
  if(s.state==='plot1_thanwa_replied')return beforeContact[beforeContactSent()]||'';
@@ -74,12 +74,12 @@ const originalRender=renderLineHistory;renderLineHistory=function(c){originalRen
 const originalOpen=openLineChat;openLineChat=function(c){originalOpen(c);if(s.unreadCounts)s.unreadCounts[c]=0;save();if(c==='thanwa'&&s.unread){s.unread=false;save()}updateNotification();compose();onPlot3ChatOpened(c)};
 function updateChatList(){
  s.unreadCounts=s.unreadCounts||{};
- const contacts=['thanwa','secretary','parn'];
+ const contacts=['thanwa','secretary','parn','dad'];
  for(const c of contacts){
   const row=document.querySelector('#line-'+c),last=s.messages.filter(m=>m.contact===c).at(-1);
   if(!last)continue;
   row.querySelector('.line-contact-copy p').textContent=last.image?'[图片]':last.card?'[联系人] Khun Techin':last.text;
-  row.querySelector('time').textContent=last.date.includes('30日')?'14:26':last.date.includes('29日')?'29 Jun':last.date.includes('28日')?last.date.split(' ').at(-1):last.date.includes('26日')?'26 Jun':'20:35';
+  row.querySelector('time').textContent=last.date.includes('7月1日')?last.date.split(' ').at(-1):last.date.includes('30日')?'14:26':last.date.includes('29日')?'29 Jun':last.date.includes('28日')?last.date.split(' ').at(-1):last.date.includes('26日')?'26 Jun':'20:35';
   let badge=row.querySelector('.plot-unread-count');if(!badge){badge=el('span','plot-unread-count');row.append(badge)}
   const count=s.unreadCounts[c]||0;badge.textContent=String(count);badge.hidden=!count;
   row.setAttribute('aria-label',row.querySelector('strong').textContent+'，'+(last.image?'图片':last.card?'联系人卡片':last.text)+(count?'，'+count+'条未读':''));
@@ -91,19 +91,20 @@ function updateChatList(){
 function updateNotification(){updateTyping();updateChatList();
  const latest=s.messages.filter(m=>!m.me&&(s.unreadCounts?.[m.contact]||0)>0).at(-1),contact=latest?.contact||'thanwa';
  s.unread=!!latest;notification.dataset.contact=contact;notification.hidden=!latest||visible(contact);notification.setAttribute('aria-label','打开'+lineContactNames[contact]+'的新LINE消息');notification.textContent='LINE · '+lineContactNames[contact]+'\n'+(latest?.image?'[图片]':latest?.text||'新消息');
- for(const c of ['thanwa','parn','secretary'])document.querySelector('#line-'+c).classList.toggle('plot-unread',(s.unreadCounts?.[c]||0)>0)
+ for(const c of ['thanwa','parn','secretary','dad'])document.querySelector('#line-'+c).classList.toggle('plot-unread',(s.unreadCounts?.[c]||0)>0)
 }
 notification.onclick=()=>{if(!lineViewer.hidden)closeLinePhoto();const sms=document.querySelector('#messages-app');if(sms){sms.hidden=true;sms.inert=true}if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app','instagram-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id!=='photos-app')n.inert=true}openLine();openLineChat(notification.dataset.contact||'thanwa')};
 function add(m){if(!m.me)lastIncomingAt=Date.now();if(!s.messages.some(x=>x.id===m.id)){s.messages.push(m);if(!m.me&&!visible(m.contact)){s.unreadCounts=s.unreadCounts||{};s.unreadCounts[m.contact]=(s.unreadCounts[m.contact]||0)+1}}if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
 function schedule(contact,texts,delay,done,typing=true){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
  if(s.startedAt&&s.state==='plot1_exploration'&&Date.now()-s.startedAt>=EXPLORATION_DELAY_MS){state('plot1_thanwa_notification');schedule('thanwa',['？','Techin？','他不是Gay吗？'],0,'intro')}
- while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:m.date||'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='plot4-turn')finishPlot4Turn();if(m.done==='plot3-turn')finishPlot3Turn();if(m.done==='plot2-intro')mark2('plot2_thanwa_completed');if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
- updateNotification();processPlot2();processPlot3();processPlot4();
+ while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:m.date||'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='plot5-turn')finishPlot5Turn();if(m.done==='plot4-turn')finishPlot4Turn();if(m.done==='plot3-turn')finishPlot3Turn();if(m.done==='plot2-intro')mark2('plot2_thanwa_completed');if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
+ updateNotification();processPlot2();processPlot3();processPlot4();processPlot5();
 }
 new MutationObserver(()=>{if(phone.classList.contains('unlocked')&&!s.startedAt){s.startedAt=Date.now();save()}}).observe(phone,{attributes:true,attributeFilter:['class']});
 const originalUnlock=unlock;unlock=function(){originalUnlock();if(!s.startedAt){s.startedAt=Date.now();save()}};
 send.onclick=()=>{if(!draft||draftContact!==currentLineContact||draft!==preset())return;const c=currentLineContact,text=draft;
+ if(s.plot5){sendPlot5(text);return}
  if(s.plot4){sendPlot4(text);return}
  if(s.plot3){sendPlot3(text);return}
  const isPlot2=c==='thanwa'&&s.state==='plot2_thanwa_completed';
@@ -292,8 +293,8 @@ new MutationObserver(()=>{if(visible('parn'))onPlot3ChatOpened('parn')}).observe
 function plot3Contact(){return p3()?.segment&&p3().segment!=='final'?'parn':'thanwa'}
 function plot3Date(){return p3()?.currentDate||window.PLOT3_DATA.date}
 function showBranchUI(){
- branchChoices.hidden=!(visible('parn')&&p3()?.introCompleted&&!s.plot3_branch&&!p3()?.animation);
- parnCallButton.disabled=!(visible('parn')&&p3()?.parnCallReady&&!s.plot3_parn_call_completed);
+ branchChoices.hidden=!!s.plot4||!!s.plot5||!(visible('parn')&&p3()?.introCompleted&&!s.plot3_branch&&!p3()?.animation);
+ parnCallButton.disabled=!!s.plot4||!!s.plot5||!(visible('parn')&&p3()?.parnCallReady&&!s.plot3_parn_call_completed);
  parnCallButton.setAttribute('aria-label',parnCallButton.disabled?'通话':'拨打Parn电话');
 }
 function animateDrafts(kind,lines,hold=2000,lead=0){
@@ -316,7 +317,7 @@ function tickDraftAnimation(){
  }else save()
 }
 function onPlot3ChatOpened(contact){
- if(!p3())return;showBranchUI();if(contact!=='parn'||!p3().parnUnlocked)return;
+ if(!p3()||s.plot4||s.plot5)return;showBranchUI();if(contact!=='parn'||!p3().parnUnlocked)return;
  if(!p3().introCompleted&&!p3().animation)animateDrafts('intro',window.PLOT3_BRANCHES.intro,1500,2000);
  if(p3().animation){input.textContent=animationText();send.disabled=true}
 }
@@ -377,10 +378,49 @@ function sendPlot4(text){
 }
 function processPlot4(){if(!p4()&&(s.plot3?.completed||s.state==='plot3_completed')&&!s.queue.length)begin4()}
 
+// Plot 5 is LINE-only. Parn has no incoming turn and no call is scheduled.
+const p5=()=>s.plot5;
+function mark5(node){if(!p5().nodes.includes(node))p5().nodes.push(node);state(node)}
+function plot5Contact(){return p5().scene===1?'thanwa':p5().scene===2?'dad':'parn'}
+function plot5Turn(){return p5()&&window.PLOT5_DATA['scene'+p5().scene]?.[p5().event]}
+function plot5Preset(){const turn=plot5Turn();return !p5().completed&&!p5().readyAt&&currentLineContact===plot5Contact()&&turn?.from==='me'?(turn.messages[p5().playerIndex]||''):''}
+function applyPlot5Date(){
+ const time=p5().date.split(' ').at(-1);
+ document.querySelector('.date').textContent='Wednesday, 1 July 2026';document.querySelector('.time').textContent=time;document.querySelector('.day').textContent='WEDNESDAY';document.querySelector('.daynum').textContent='1';lock.setAttribute('aria-label','锁屏，'+p5().date+'。向上滑动解锁');document.querySelector('.calendar').setAttribute('aria-label',p5().date);
+ for(const n of document.querySelectorAll('.status>span:first-child,.photos-status>span:first-child,.sms-status>span:first-child'))if(n.textContent!=='Wi-Fi Call')n.textContent=time
+}
+function begin5(){s.plot5={scene:1,event:0,playerIndex:0,parnMessageIndex:0,date:'2026年7月1日 10:18',readyAt:null,nodes:[],completed:false};mark5('plot5_started');applyPlot5Date();enterPlot5Turn()}
+function enterPlot5Turn(){
+ const turn=plot5Turn();if(!turn){
+  if(p5().scene===1){mark5('plot5_thanwa_completed');p5().scene=2;p5().readyAt=Date.now()+5000}
+  else if(p5().scene===2){mark5('plot5_father_chat_completed');p5().scene=3;p5().readyAt=Date.now()+3000}
+  else{p5().completed=true;mark5('plot5_completed');compose();return}
+  p5().event=0;p5().playerIndex=0;save();compose();return
+ }
+ if(turn.from!=='me'){
+  const now=Date.now();s.queue=turn.messages.map((text,i)=>({id:'plot5-s'+p5().scene+'-e'+p5().event+'-'+i,contact:turn.from,text,date:p5().date,due:now+3000+i*1000,typing:true,typingAt:now,done:i===turn.messages.length-1?'plot5-turn':null}));save()
+ }compose()
+}
+function finishPlot5Turn(){p5().event++;p5().playerIndex=0;save();enterPlot5Turn()}
+function sendPlot5(text){
+ const turn=plot5Turn();add({id:'plot5-player-s'+p5().scene+'-e'+p5().event+'-'+p5().playerIndex,contact:plot5Contact(),text,me:true,date:p5().date});
+ p5().playerIndex++;if(p5().scene===3)p5().parnMessageIndex=p5().playerIndex;
+ save();if(p5().playerIndex===turn.messages.length)finishPlot5Turn();else compose()
+}
+function processPlot5(){
+ if(!p5()&&(s.plot4?.completed||s.state==='plot4_completed')&&!s.queue.length)begin5();
+ if(p5()?.readyAt&&Date.now()>=p5().readyAt){p5().readyAt=null;
+  if(p5().scene===2)mark5('plot5_father_chat_started');
+  else if(p5().scene===3){p5().date='2026年7月1日 20:36';applyPlot5Date();mark5('plot5_parn_monologue_started')}
+  enterPlot5Turn()
+ }
+}
+
 window.addEventListener('keydown',e=>{if(!call.hidden&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation()}},true);
 window.addEventListener('pagehide',()=>{save();clearAudio()});
 function restoreGame(){
- if(s.plot4)applyPlot4Date();
+ if(s.plot5)applyPlot5Date();
+ else if(s.plot4)applyPlot4Date();
  else if(s.plot3){const match=(s.plot3.currentDate||window.PLOT3_DATA.date).match(/6月(\d+)日 (\d+:\d+)/);applyPlot3Date(match?Number(match[1]):28,match?match[2]:'15:34')}
  else if(s.plot2?.orderActive)applyOrderDate();
  const ui=resumeUi||{app:'lock'};

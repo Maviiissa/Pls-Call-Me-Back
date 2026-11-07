@@ -10,7 +10,7 @@ The shared story tick starts Plot 4 exactly once after Plot 3 commits its comple
 2. S's work reminder and complete flower order through the existing secretary chat.
 3. The clock becomes Tuesday, 30 June 2026, 14:26. S reports the refusal and the player completes the supplied reply sequence.
 4. The first Thanwa message arrives five seconds after the secretary conversation finishes. Typing occupies the final three seconds of that wait.
-5. The first Parn message arrives five seconds after Thanwa's final message. The existing Parn chat retains all historical and branch messages. The supplied last Parn sentence commits Plot 4 completion; there is no Plot 5 trigger.
+5. The first Parn message arrives five seconds after Thanwa's final message. The existing Parn chat retains all historical and branch messages. The supplied last Parn sentence commits Plot 4 completion; it now enables the separately supplied Plot 5 continuation once.
 
 All dialogue is in plot4-data.js. Each item in a turn is an independent bubble. Incoming turns type for three seconds and deliver consecutive bubbles one second apart. Multi-message player turns do not advance until every message is manually sent. Shared queue IDs prevent duplicates; leaving the app does not stop incoming messages. Wrong-contact input cannot send the active turn.
 
@@ -28,6 +28,6 @@ The original index.html markup/history and Facebook data are unchanged except fo
 
 ## Validation
 
-`tests/plot4.browser.cjs` runs the entire 94-bubble plot from each of the three preserved Plot 3 branch saves. It checks exact sequence, manual-only outgoing messages, disabled sending while waiting, the initial three-second delay, both five-second delays, one-second independent bubbles, all three avatars, four existing contacts only, historical Parn text, preserved branch data, background replies from Instagram/Photos/lock screen, correct notification destinations, June 30 date, in-flight refresh, final refresh without replay, and no Plot 5.
+`tests/plot4.browser.cjs` runs the entire 94-bubble plot from each of the three preserved Plot 3 branch saves. It checks exact sequence, manual-only outgoing messages, disabled sending while waiting, the initial three-second delay, both five-second delays, one-second independent bubbles, all three avatars, four existing contacts only, historical Parn text, preserved branch data, background replies from Instagram/Photos/lock screen, correct notification destinations, June 30 date, in-flight refresh, final refresh without replay, and the one-time Plot 5 handoff.
 
 Updated Plot 3 tests additionally run Plot 1 → Plot 2 → each complete Plot 3 branch → the Plot 4 handoff. The persistence suite includes an Instagram app refresh regression for the deferred-script readiness fix.

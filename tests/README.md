@@ -37,3 +37,11 @@ CHROMIUM_PATH=/usr/bin/chromium node tests/plot4.browser.cjs
 ```
 
 These cover the existing three avatar sources, manual turns, timer spacing, active-app isolation, background notifications, lock-screen entry, scene/date transitions, saved branch/history preservation and refresh without duplicate messages.
+
+Plot 5 and its strictly one-way Parn monologue:
+
+```sh
+CHROMIUM_PATH=/usr/bin/chromium node tests/plot5.browser.cjs
+```
+
+Covers all 66 new bubbles, the actual 15 supplied monologue lines, the Plot 4 final-message gate, Dad's existing thread/avatar, all player sends, 3s/5s deadlines, date/clock updates, mid-reply refresh, lock and app switching, retained history, and no Parn response/typing/call or Plot 6 after completion. Plot 4's tests now check the Plot 5 handoff rather than expecting no later plot.
