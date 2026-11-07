@@ -54,3 +54,11 @@ CHROMIUM_PATH=/usr/bin/chromium node tests/plot6-audio.browser.cjs
 ```
 
 The first test substitutes only audioSrc for a virtual subtitle clock, enabling precise boundary tests, app/lock coverage, refresh and pause/resume checks. The second uses the actual unmodified M4A with real playback for about 49 seconds and verifies all 27 subtitle transitions against media time. The persistence suite additionally covers Plot 6 audio position and silent-tail restoration.
+
+Plot 7 final chapter:
+
+```sh
+CHROMIUM_PATH=/usr/bin/chromium node tests/plot7.browser.cjs
+```
+
+The test seeds a completed Plot 6 and runs every supplied Plot 7 turn. It uses test-only network image fixtures for the four user asset URLs, checks that failed images do not count as viewed, and verifies restored photos, manual sends (including image messages), correct contacts, proposal handoff, wedding date/posts, and the final home-screen ending only after both wedding posts are viewed. Refresh mid-story and after completion must retain progress without duplicate messages/posts. `TEST_SCREENSHOT` optionally writes the final home screen screenshot. Production requires the actual four JPGs listed in PLOT7.md; no substitute images are installed.

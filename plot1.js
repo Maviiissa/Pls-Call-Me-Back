@@ -25,7 +25,7 @@ function captureUi(){
 }
 const save=()=>{if(!restoring)s.ui=captureUi();s.savedAt=Date.now();localStorage.setItem(KEY,JSON.stringify(s))};
 window.PheemGameProgress={
- getInstagram(){const profile=JSON.parse(JSON.stringify(s.instagram||{}));profile.posts=profile.posts||[];if(s.plot3?.postPublished&&!profile.posts.some(p=>p.id===window.PLOT3_DATA.post.id))profile.posts.unshift({...window.PLOT3_DATA.post});return profile},
+ getInstagram(){const profile=JSON.parse(JSON.stringify(s.instagram||{}));profile.posts=profile.posts||[];if(s.plot3?.postPublished&&!profile.posts.some(p=>p.id===window.PLOT3_DATA.post.id))profile.posts.unshift({...window.PLOT3_DATA.post});if(s.plot7?.lovePublished&&!profile.posts.some(p=>p.id===window.PLOT7_DATA.lovePost.id))profile.posts.unshift({...window.PLOT7_DATA.lovePost,date:'1 July 2026'});if(s.plot7?.weddingPublished&&!profile.posts.some(p=>p.id===window.PLOT7_DATA.weddingPost.id))profile.posts.unshift({...window.PLOT7_DATA.weddingPost});return profile},
  saveInstagram(profile){s.instagram=JSON.parse(JSON.stringify(profile));save()}
 };
 const state=x=>{s.state=x;save()};
@@ -46,7 +46,7 @@ let draft='',draftContact='';
 const beforeContact=['我找秘书问Techin电话','我自己去问他'];
 const beforeContactSent=()=>s.messages.filter(m=>m.id.startsWith('player-before-contact-')).length;
 const follow=['……是我误会了。','我去问了Techin。','还能怎么办。','Techin给了我她蛋糕店的地址和FB','你帮我群里说一声，明天请大家吃蛋糕','不许有任何人拒绝'];
-function preset(){if(s.queue.length)return '';if(s.plot5)return plot5Preset();if(s.plot4)return plot4Preset();if(s.plot3)return plot3Preset();if(currentLineContact==='thanwa'){
+function preset(){if(s.queue.length)return '';if(s.plot7)return plot7Preset();if(s.plot5)return plot5Preset();if(s.plot4)return plot4Preset();if(s.plot3)return plot3Preset();if(currentLineContact==='thanwa'){
  if(s.state==='plot2_thanwa_completed')return window.PLOT2_DATA.pheem[s.plot2.lineStep]||'';
  if(s.state==='plot1_thanwa_notification')return '？？';
  if(s.state==='plot1_thanwa_replied')return beforeContact[beforeContactSent()]||'';
@@ -64,7 +64,7 @@ function renderExtra(c){
  if(!m.me){const a=el('img','line-avatar');a.src=document.querySelector('#line-'+c+' .line-avatar').src;a.alt='';row.append(a)}
  let bubble=el('div','line-bubble');
  if(m.image){
- const photo=el('button','line-photo');photo.setAttribute('aria-label','查看500份蛋糕照片');const image=el('img','');image.src=m.image;image.alt=m.alt||'蛋糕照片';photo.append(image);photo.onclick=()=>{lineViewer.querySelector('img').src=m.image;lineViewer.querySelector('img').alt=image.alt;lineViewer.hidden=false;lineViewer.inert=false;lineApp.querySelector('.line-body').inert=true;lineApp.querySelector('.line-home').inert=true;lineViewer.querySelector('button').focus()};bubble=photo;
+ const photo=el('button','line-photo');photo.setAttribute('aria-label',m.viewLabel||'查看500份蛋糕照片');const image=el('img','');image.src=m.image;image.alt=m.alt||'蛋糕照片';photo.append(image);photo.onclick=()=>{lineViewer.querySelector('img').src=m.image;lineViewer.querySelector('img').alt=image.alt;lineViewer.hidden=false;lineViewer.inert=false;lineApp.querySelector('.line-body').inert=true;lineApp.querySelector('.line-home').inert=true;lineViewer.querySelector('button').focus()};bubble=photo;
  }else if(m.card){bubble.classList.add('plot-contact');bubble.append(el('strong','','Khun Techin'),el('div','','+66 33 222 1166'));const b=el('button','','拨打电话');b.disabled=s.callDone;b.onclick=startCall;bubble.append(b)}else bubble.textContent=m.text;
  const meta=el('div','line-meta',m.me?'Read':m.date.split(' ').at(-1));if(m.me)row.append(meta,bubble);else row.append(bubble,meta);lineHistory.append(row)
  }
@@ -79,7 +79,7 @@ function updateChatList(){
   const row=document.querySelector('#line-'+c),last=s.messages.filter(m=>m.contact===c).at(-1);
   if(!last)continue;
   row.querySelector('.line-contact-copy p').textContent=last.image?'[图片]':last.card?'[联系人] Khun Techin':last.text;
-  row.querySelector('time').textContent=last.date.includes('7月1日')?last.date.split(' ').at(-1):last.date.includes('30日')?'14:26':last.date.includes('29日')?'29 Jun':last.date.includes('28日')?last.date.split(' ').at(-1):last.date.includes('26日')?'26 Jun':'20:35';
+  row.querySelector('time').textContent=last.date.includes('10月30日')?'30 Oct':last.date.includes('7月1日')?last.date.split(' ').at(-1):last.date.includes('30日')?'14:26':last.date.includes('29日')?'29 Jun':last.date.includes('28日')?last.date.split(' ').at(-1):last.date.includes('26日')?'26 Jun':'20:35';
   let badge=row.querySelector('.plot-unread-count');if(!badge){badge=el('span','plot-unread-count');row.append(badge)}
   const count=s.unreadCounts[c]||0;badge.textContent=String(count);badge.hidden=!count;
   row.setAttribute('aria-label',row.querySelector('strong').textContent+'，'+(last.image?'图片':last.card?'联系人卡片':last.text)+(count?'，'+count+'条未读':''));
@@ -98,12 +98,13 @@ function add(m){if(!m.me)lastIncomingAt=Date.now();if(!s.messages.some(x=>x.id==
 function schedule(contact,texts,delay,done,typing=true){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
  if(s.startedAt&&s.state==='plot1_exploration'&&Date.now()-s.startedAt>=EXPLORATION_DELAY_MS){state('plot1_thanwa_notification');schedule('thanwa',['？','Techin？','他不是Gay吗？'],0,'intro')}
- while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:m.date||'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='plot5-turn')finishPlot5Turn();if(m.done==='plot4-turn')finishPlot4Turn();if(m.done==='plot3-turn')finishPlot3Turn();if(m.done==='plot2-intro')mark2('plot2_thanwa_completed');if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
- updateNotification();processPlot2();processPlot3();processPlot4();processPlot5();processPlot6();
+ while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:m.date||'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='plot7-turn')finishPlot7Turn();if(m.done==='plot5-turn')finishPlot5Turn();if(m.done==='plot4-turn')finishPlot4Turn();if(m.done==='plot3-turn')finishPlot3Turn();if(m.done==='plot2-intro')mark2('plot2_thanwa_completed');if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
+ updateNotification();processPlot2();processPlot3();processPlot4();processPlot5();processPlot6();processPlot7();
 }
 new MutationObserver(()=>{if(phone.classList.contains('unlocked')&&!s.startedAt){s.startedAt=Date.now();save()}}).observe(phone,{attributes:true,attributeFilter:['class']});
 const originalUnlock=unlock;unlock=function(){originalUnlock();if(!s.startedAt){s.startedAt=Date.now();save()}};
 send.onclick=()=>{if(!draft||draftContact!==currentLineContact||draft!==preset())return;const c=currentLineContact,text=draft;
+ if(s.plot7){sendPlot7(text);return}
  if(s.plot5){sendPlot5(text);return}
  if(s.plot4){sendPlot4(text);return}
  if(s.plot3){sendPlot3(text);return}
@@ -461,10 +462,76 @@ function endPlot6Call(complete){
 }
 function processPlot6(){if(!p6()&&s.plot5?.completed&&!s.queue.length)begin6();if(p6()?.phase==='waiting'&&Date.now()>=p6().triggerAt)ringPlot6()}
 
+// Final chapter shares the existing queue, contacts, app components and save.
+const p7=()=>s.plot7;
+const ending7=el('div','plot7-ending','THE END ❤️');ending7.hidden=true;home.append(ending7);
+let albumApplied7=false;
+function mark7(node){if(!p7().nodes.includes(node))p7().nodes.push(node);state(node)}
+function applyPlot7Date(){
+ const wedding=p7().weddingUnlocked,time=p7().date.split(' ').at(-1);
+ document.querySelector('.date').textContent=wedding?'Friday, 30 October 2026':'Wednesday, 1 July 2026';document.querySelector('.time').textContent=time;document.querySelector('.day').textContent=wedding?'FRIDAY':'WEDNESDAY';document.querySelector('.daynum').textContent=wedding?'30':'1';lock.setAttribute('aria-label','锁屏，'+p7().date+'。向上滑动解锁');document.querySelector('.calendar').setAttribute('aria-label',p7().date);
+ for(const n of document.querySelectorAll('.status>span:first-child,.photos-status>span:first-child,.sms-status>span:first-child'))if(n.textContent!=='Wi-Fi Call')n.textContent=time
+}
+function restorePlot7Album(){if(p7()?.albumRestored&&!albumApplied7&&window.PheemPhotos){window.PheemPhotos.restoreAlbum();albumApplied7=true}}
+function begin7(){s.plot7={phase:'love',date:s.plot5?.date||'2026年7月1日 20:36',event:0,playerIndex:0,nodes:[],albumRestored:true,completed:false};mark7('plot7_started');restorePlot7Album();mark7('plot7_album_restored');applyPlot7Date()}
+function plot7Turn(){return p7()&&window.PLOT7_DATA[p7().phase]?.[p7().event]}
+function plot7Contact(){return p7().phase==='proposal'?'parn':'thanwa'}
+function plot7Preset(){const turn=plot7Turn(),item=turn?.messages[p7()?.playerIndex];return turn?.from==='me'&&!p7().completed&&currentLineContact===plot7Contact()?(typeof item==='string'?item:item?.draft||''):''}
+function enterPlot7Turn(delay=3000){
+ const turn=plot7Turn();if(!turn){
+  if(p7().phase==='thanwa'){mark7('plot7_thanwa_completed');p7().phase='proposal';p7().event=0;p7().playerIndex=0;save();enterPlot7Turn(5000)}
+  else if(p7().phase==='proposal'){p7().proposalCompleted=true;p7().weddingUnlocked=true;p7().phase='wedding';p7().date='2026年10月30日 '+p7().date.split(' ').at(-1);mark7('plot7_proposal_completed');applyPlot7Date();compose()}
+  return
+ }
+ if(turn.from!=='me'){
+  const now=Date.now();s.queue=turn.messages.map((text,i)=>({id:'plot7-'+p7().phase+'-e'+p7().event+'-'+i,contact:turn.from,text,date:p7().date,due:now+delay+i*1000,typing:true,typingAt:now+Math.max(0,delay-3000),done:i===turn.messages.length-1?'plot7-turn':null}));save()
+ }compose()
+}
+function finishPlot7Turn(){p7().event++;p7().playerIndex=0;save();enterPlot7Turn()}
+function sendPlot7(text){
+ const turn=plot7Turn(),item=turn.messages[p7().playerIndex];
+ add({id:'plot7-player-'+p7().phase+'-e'+p7().event+'-'+p7().playerIndex,contact:plot7Contact(),text:typeof item==='string'?text:'',...(typeof item==='object'?item:{}),me:true,date:p7().date});
+ p7().playerIndex++;save();if(p7().playerIndex===turn.messages.length)finishPlot7Turn();else compose()
+}
+function restorePlot7Facebook(){
+ if(!p7()?.facebookPublished||FACEBOOK_POSTS.some(post=>post.id===window.PLOT7_DATA.facebookPost.id))return;
+ FACEBOOK_POSTS.unshift(JSON.parse(JSON.stringify(window.PLOT7_DATA.facebookPost)));renderFacebook(fb.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab||'All')
+}
+function publishPlot7Wedding(){
+ if(!p7()?.weddingUnlocked||p7().weddingPublished)return;
+ p7().weddingPublished=true;p7().facebookPublished=true;
+ window.PheemInstagram.addPost({...window.PLOT7_DATA.weddingPost});restorePlot7Facebook();mark7('plot7_wedding_published')
+}
+window.addEventListener('instagram:opened',()=>{
+ if(!p7())return;
+ if(p7().phase==='love'&&!p7().lovePublished){p7().lovePublished=true;window.PheemInstagram.addPost({...window.PLOT7_DATA.lovePost,date:'1 July 2026'});mark7('plot7_love_posted')}
+ publishPlot7Wedding()
+});
+window.addEventListener('instagram:post-viewed',e=>{
+ if(!p7())return;
+ if(e.detail.id===window.PLOT7_DATA.lovePost.id&&p7().phase==='love'&&!p7().loveSeen){p7().loveSeen=true;mark7('plot7_love_viewed');p7().phase='thanwa';p7().event=0;enterPlot7Turn()}
+ if(e.detail.id===window.PLOT7_DATA.weddingPost.id&&p7().weddingPublished&&!p7().igWeddingSeen){p7().igWeddingSeen=true;mark7('plot7_instagram_wedding_viewed')}
+});
+function checkPlot7FacebookView(){
+ if(!p7()?.facebookPublished||p7().fbWeddingSeen||captureUi().app!=='facebook'||!bakeryChat.hidden)return;
+ const article=fb.querySelector('[data-post-id="plot7-wedding-fb"]'),image=article?.querySelector('img'),root=fb.querySelector('.fb-scroll');if(!image?.complete||!image.naturalWidth)return;
+ const r=image.getBoundingClientRect(),v=root.getBoundingClientRect(),visibleHeight=Math.max(0,Math.min(r.bottom,v.bottom)-Math.max(r.top,v.top));
+ if(r.width>0&&visibleHeight>=Math.min(r.height,v.height)*0.45){p7().fbWeddingSeen=true;mark7('plot7_facebook_wedding_viewed')}
+}
+const originalFacebook7=openFacebook;openFacebook=function(){publishPlot7Wedding();originalFacebook7();checkPlot7FacebookView()};document.querySelector('.app-hit[aria-label="Facebook"]').onclick=()=>openFacebook();
+function processPlot7(){
+ if(!p7()&&s.plot6?.completed&&!s.queue.length)begin7();if(!p7())return;
+ restorePlot7Album();checkPlot7FacebookView();
+ const atHome=captureUi().app==='home';
+ if(!p7().completed&&p7().igWeddingSeen&&p7().fbWeddingSeen&&atHome){p7().completed=true;p7().phase='completed';mark7('plot7_completed')}
+ ending7.hidden=!p7().completed||!atHome
+}
+
 window.addEventListener('keydown',e=>{if(!call.hidden&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation()}},true);
 window.addEventListener('pagehide',()=>{save();clearAudio()});
 function restoreGame(){
- if(s.plot5)applyPlot5Date();
+ if(s.plot7){applyPlot7Date();restorePlot7Album();restorePlot7Facebook()}
+ else if(s.plot5)applyPlot5Date();
  else if(s.plot4)applyPlot4Date();
  else if(s.plot3){const match=(s.plot3.currentDate||window.PLOT3_DATA.date).match(/6月(\d+)日 (\d+:\d+)/);applyPlot3Date(match?Number(match[1]):28,match?match[2]:'15:34')}
  else if(s.plot2?.orderActive)applyOrderDate();

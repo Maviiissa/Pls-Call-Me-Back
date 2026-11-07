@@ -14,7 +14,7 @@
   .photos-album{border:0;background:none;padding:0;text-align:left;display:block;width:48%;cursor:pointer;color:inherit}
   .photos-album-cover{aspect-ratio:1;border-radius:4cqw;overflow:hidden;background:#e4e5eb;position:relative}
   .photos-album-cover img{width:100%;height:100%;object-fit:cover;display:block}
-  .photos-album-cover:after{content:'✕';position:absolute;right:8%;bottom:7%;font-size:4.5cqw;font-weight:700;border-radius:50%;background:#171821aa;color:white;padding:1% 3%}
+  .photos-app.restored .photos-album-cover:after{display:none}.photos-album-cover:after{content:'✕';position:absolute;right:8%;bottom:7%;font-size:4.5cqw;font-weight:700;border-radius:50%;background:#171821aa;color:white;padding:1% 3%}
   .photos-album-title{font-size:4cqw;font-weight:650;margin-top:3%}
   .photos-album-count{font-size:3.1cqw;color:#83848b;margin-top:1%}
   .photos-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.4cqw}
@@ -38,7 +38,7 @@
   app.innerHTML='<div class="photos-status"><span>20:35</span><span>● ▰ ▰</span></div><header class="photos-bar"><button class="photos-back" type="button">‹ Albums</button><h1>Photos</h1><button class="photos-more" aria-label="更多选项" type="button">•••</button></header><main class="photos-content"></main><section class="photos-viewer" role="dialog" aria-label="查看照片" aria-modal="true"><div class="photos-viewer-top"><button class="photos-close" type="button">‹ Back</button><span class="photos-viewer-counter"></span><button class="photos-more-view" type="button">•••</button></div><div class="photos-viewer-image"><img alt="最近删除的照片"></div><div class="photos-viewer-bottom"><button class="photos-prev" type="button" aria-label="上一张">‹</button><span>Recently Deleted</span><button class="photos-next" type="button" aria-label="下一张">›</button></div><div class="photos-home"></div></section><div class="photos-home"></div>';
   document.querySelector('#phone').append(app);
   const body=app.querySelector('.photos-content'),heading=app.querySelector('.photos-bar h1'),back=app.querySelector('.photos-back'),viewer=app.querySelector('.photos-viewer');
-  let page='albums',selected=0;
+  let page='albums',selected=0,albumName='Recently Deleted',restored=false;
   function open(){const home=document.querySelector('#home');home.inert=true;app.classList.add('open');page='albums';render();back.focus({preventScroll:true})}
   function close(){app.classList.remove('open');document.querySelector('#home').inert=false;document.querySelector('[aria-label="Photos"]').focus({preventScroll:true})}
   function render(){
@@ -48,19 +48,19 @@
       body.innerHTML='<h2 class="photos-heading">Albums</h2><p class="photos-description">My Albums</p>';
       const button=document.createElement('button');button.type='button';button.className='photos-album';
       const cover=document.createElement('div');cover.className='photos-album-cover';
-      const img=document.createElement('img');img.src=images[0];img.alt='Recently Deleted 相簿封面';cover.append(img);
-      const title=document.createElement('div');title.className='photos-album-title';title.textContent='Recently Deleted';
+      const img=document.createElement('img');img.src=images[0];img.alt=albumName+' 相簿封面';cover.append(img);
+      const title=document.createElement('div');title.className='photos-album-title';title.textContent=albumName;
       const count=document.createElement('div');count.className='photos-album-count';count.textContent='5 Photos';
       button.append(cover,title,count);button.onclick=()=>{page='deleted';render()};body.append(button);
     }else{
-      heading.textContent='Recently Deleted';back.textContent='‹ Albums';
-      body.innerHTML='<h2 class="photos-heading">Recently Deleted</h2><p class="photos-description">5 Photos</p>';
+      heading.textContent=albumName;back.textContent='‹ Albums';
+      body.innerHTML='<h2 class="photos-heading"></h2><p class="photos-description">5 Photos</p>';body.querySelector('h2').textContent=albumName;
       const grid=document.createElement('div');grid.className='photos-grid';
-      images.forEach((src,index)=>{const tile=document.createElement('button');tile.type='button';tile.className='photos-tile';tile.setAttribute('aria-label','查看第'+(index+1)+'张照片');const pic=document.createElement('img');pic.src=src;pic.alt='最近删除的照片 '+(index+1);tile.append(pic);tile.onclick=()=>showPhoto(index);grid.append(tile)});
+      images.forEach((src,index)=>{const tile=document.createElement('button');tile.type='button';tile.className='photos-tile';tile.setAttribute('aria-label','查看第'+(index+1)+'张照片');const pic=document.createElement('img');pic.src=src;pic.alt=(restored?'Parn的照片 ':'最近删除的照片 ')+(index+1);tile.append(pic);tile.onclick=()=>showPhoto(index);grid.append(tile)});
       body.append(grid);
     }
   }
-  function showPhoto(index){selected=(index+images.length)%images.length;viewer.classList.add('open');viewer.querySelector('img').src=images[selected];viewer.querySelector('.photos-viewer-counter').textContent=(selected+1)+' / '+images.length}
+  function showPhoto(index){selected=(index+images.length)%images.length;viewer.classList.add('open');viewer.querySelector('img').alt=(restored?'Parn的照片':'最近删除的照片');viewer.querySelector('img').src=images[selected];viewer.querySelector('.photos-viewer-counter').textContent=(selected+1)+' / '+images.length}
   back.onclick=()=>{if(page==='deleted'){page='albums';render()}else close()};
   app.querySelector('.photos-close').onclick=()=>viewer.classList.remove('open');
   app.querySelector('.photos-prev').onclick=()=>showPhoto(selected-1);
@@ -68,5 +68,6 @@
   app.querySelector('.photos-more').onclick=()=>{};
   app.querySelector('.photos-more-view').onclick=()=>{};
   document.addEventListener('keydown',e=>{if(!app.classList.contains('open'))return;if(e.key==='Escape'){e.stopImmediatePropagation();if(viewer.classList.contains('open'))viewer.classList.remove('open');else if(page==='deleted'){page='albums';render()}else close()}else if(viewer.classList.contains('open')&&e.key==='ArrowLeft')showPhoto(selected-1);else if(viewer.classList.contains('open')&&e.key==='ArrowRight')showPhoto(selected+1)},true);
+  window.PheemPhotos={restoreAlbum(){restored=true;albumName='Parn ❤️';app.classList.add('restored');viewer.querySelector('.photos-viewer-bottom span').textContent=albumName;if(app.classList.contains('open'))render()}};
   const icon=document.querySelector('[aria-label="Photos"]');if(icon)icon.onclick=open;
 })();
