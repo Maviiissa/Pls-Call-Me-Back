@@ -10,7 +10,7 @@ After the final Plot 2 order message, the clock becomes 28 June 2026, 15:34. Tha
 
 The original index.html history, including the June 17 breakup, is untouched apart from added script imports. New Parn messages are appended separately using the same LINE history renderer and avatar. Opening Parn after unlocking starts the draft-only intro after two seconds. It types, holds and deletes each supplied line, then exposes three inline choices. Drafts cannot be sent. Leaving the chat pauses the animation and returning resumes it without replaying completed animations.
 
-- `scarf`: both player messages require Send; the second fills automatically. After Parn's three replies, the two unsent drafts play and the branch merges.
+- `scarf`: both player messages first show 点击输入回复 and fill only after a composer click; each requires Send. After Parn's three replies, the two unsent drafts play and the branch merges.
 - `miss_you`: the clock becomes June 28, 23:18. After the supplied late-night chat, the existing phone icon becomes active for Parn. The existing single phone screen dials for three seconds, plays the full source recording, and uses audio currentTime for subtitles and call time. Early End stops media, returns to Parn, and permits retry without unlocking morning. Natural completion disables replay, returns to Parn, and offers the composer as a way to continue. Leaving for home updates to June 29, 10:42; returning to Parn plays the three unsent morning drafts before the supplied morning dialogue. The final Parn replies complete the branch.
 - `cake`: player messages remain manual. The three unsent drafts after the final …… play before merging.
 

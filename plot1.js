@@ -178,7 +178,7 @@ orderInput.setAttribute('role','button');orderInput.tabIndex=0;orderInput.setAtt
 const orderTyping=el('small','','对方正在输入……');orderTyping.hidden=true;bakeryChat.querySelector('.chat-header>div:last-child').append(orderTyping);
 let orderDraft='',nameAnimating=false,nameToken=0;
 function orderReady(){return !!p2()?.orderActive&&!p2().orderQueue.length&&p2().orderStep<data2.order.length}
-function syncOrderComposer(){orderDraft='';orderText.textContent='Aa';orderSend.disabled=true}
+function syncOrderComposer(){orderDraft='';orderText.textContent=orderReady()?'点击输入回复':'Aa';orderSend.disabled=true}
 function orderVisible(){return fb.classList.contains('open')&&!bakeryChat.hidden}
 function applyOrderDate(){
  document.querySelector('.date').textContent='Saturday, 27 June 2026';document.querySelector('.time').textContent='14:12';document.querySelector('.day').textContent='SATURDAY';document.querySelector('.daynum').textContent='27';
@@ -251,7 +251,7 @@ function finishPlot3Turn(){if(!p3().segment&&p3().scene===1&&p3().event===0)mark
 function sendPlot3(text){
  const step=p3().playerIndex,turn=plot3Turn();
  add({id:p3().segment?'plot3-player-'+p3().segment+'-e'+p3().event+'-'+step:'plot3-player-s'+p3().scene+'-e'+p3().event+'-'+step,contact:plot3Contact(),text,me:true,date:plot3Date()});
- p3().playerIndex++;save();if(p3().playerIndex===turn.messages.length)finishPlot3Turn();else{compose();if(p3().segment==='scarf'&&p3().event===0)fill()}
+ p3().playerIndex++;save();if(p3().playerIndex===turn.messages.length)finishPlot3Turn();else compose()
 }
 function publishPlot3Post(){
  if(!p3()?.scene1Completed||p3().postPublished||!window.PheemInstagram)return;
@@ -302,7 +302,7 @@ function selectPlot3Branch(branch){
  if(!p3()?.introCompleted||s.plot3_branch||p3().animation||!visible('parn'))return;
  s.plot3_branch=branch;p3().branch=branch;p3().segment=branch;p3().event=0;p3().playerIndex=0;s.plot3_parn_call_completed=false;mark3('plot3_branch_selected');
  if(branch==='miss_you')applyPlot3Date(28,'23:18');enterPlot3Turn();showBranchUI();
- if(branch!=='miss_you')fill()
+ compose()
 }
 function finishPlot3Branch(){
  p3().branchCompleted=true;mark3('plot3_branch_completed');p3().segment='final';p3().event=0;p3().playerIndex=0;enterPlot3Turn();showBranchUI()
