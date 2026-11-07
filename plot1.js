@@ -41,7 +41,7 @@ function renderExtra(c){
  for(const m of s.messages.filter(m=>m.contact===c)){
  if(m.date!==date){const d=el('div','line-date',m.date);d.dataset.plot1='';lineHistory.append(d);date=m.date}
  const row=el('div','line-row '+(m.me?'me':c));row.dataset.plot1=m.id;
- if(!m.me){const a=el('img','line-avatar');a.src=c==='thanwa'?'assets/thanwa-line-avatar.jpg':'assets/secretary-line-avatar.jpg';a.alt='';row.append(a)}
+ if(!m.me){const a=el('img','line-avatar');a.src=document.querySelector('#line-'+c+' .line-avatar').src;a.alt='';row.append(a)}
  let bubble=el('div','line-bubble');
  if(m.image){
  const photo=el('button','line-photo');photo.setAttribute('aria-label','查看500份蛋糕照片');const image=el('img','');image.src=m.image;image.alt=m.alt||'蛋糕照片';photo.append(image);photo.onclick=()=>{lineViewer.querySelector('img').src=m.image;lineViewer.querySelector('img').alt=image.alt;lineViewer.hidden=false;lineViewer.inert=false;lineApp.querySelector('.line-body').inert=true;lineApp.querySelector('.line-home').inert=true;lineViewer.querySelector('button').focus()};bubble=photo;
