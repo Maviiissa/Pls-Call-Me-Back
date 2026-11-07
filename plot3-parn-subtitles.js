@@ -1,5 +1,5 @@
 // One unchanged source audio track. Seconds are relative to connection/audio start.
-// Explicit sexual instructions are not rendered as subtitles; that interval stays silent visually.
+// Updated non-graphic caption text and timing supplied by the user; audio remains uncut.
 window.PLOT3_PARN_CALL={audioSrc:'assets/parn-call-full.m4a',quietAfterAudio:6,dimAt:47,subtitles:[
  {id:'parn-1',speaker:'Parn',text:'Khun Pheem',startTime:1.2,endTime:2.0},
  {id:'parn-2',speaker:'Parn',text:'有什么事吗？',startTime:5.2,endTime:6.5},
@@ -9,5 +9,10 @@ window.PLOT3_PARN_CALL={audioSrc:'assets/parn-call-full.m4a',quietAfterAudio:6,d
  {id:'parn-6',speaker:'Parn',text:'……要做吗？',startTime:19.9,endTime:20.5},
  {id:'parn-7',speaker:'Pheem',text:'现在？',startTime:22.5,endTime:23.5},
  {id:'parn-8',speaker:'Parn',text:'嗯',startTime:26.5,endTime:27.3},
- {id:'parn-9',speaker:'Pheem',text:'Parn，我很想你。',startTime:44.5,endTime:47.0}
+ {id:'parn-9',speaker:'Pheem',text:'嗯，像之前一样。',startTime:27.5,endTime:30.8},
+ {id:'parn-10',speaker:'Pheem',text:'对……就这样。',startTime:31.5,endTime:33.6},
+ {id:'parn-11',speaker:'Pheem',text:'Parn…再往下一点。',startTime:34.2,endTime:36.0},
+ {id:'parn-12',speaker:'Pheem',text:'很乖。',startTime:36.5,endTime:38.0},
+ {id:'parn-13',speaker:'Pheem',text:'我很想它，我好想它。',startTime:38.5,endTime:43.0},
+ {id:'parn-14',speaker:'Pheem',text:'Parn，我很想你。',startTime:44.5,endTime:47.0}
 ]};

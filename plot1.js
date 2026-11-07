@@ -33,7 +33,7 @@ function preset(){if(s.queue.length)return '';if(s.plot3)return plot3Preset();if
  if(['plot1_call_completed','plot1_thanwa_followup'].includes(s.state))return follow[s.step]||'';
  }if(currentLineContact==='secretary'&&s.state==='plot1_thanwa_replied'&&beforeContactSent()===beforeContact.length)return '把Techin的电话给我';return ''}
 function compose(){draft='';input.textContent=s.plot3?.animation?animationText():((preset()||(s.plot3?.awaitMorning&&visible('parn')))?'点击输入回复':'Aa');send.disabled=true;}
-function fill(){if(s.plot3?.awaitMorning&&visible('parn')){p3().morningArmed=true;onPlot3ChatOpened('parn');return}draft=preset();draftContact=currentLineContact;if(draft){input.textContent=draft;send.disabled=false}}
+function fill(){if(s.plot3?.awaitMorning&&visible('parn')){if(!p3().animation)animateDrafts('morning',window.PLOT3_BRANCHES.morningDrafts,[1500,1500,2000]);return}draft=preset();draftContact=currentLineContact;if(draft){input.textContent=draft;send.disabled=false}}
 input.onclick=fill;input.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fill()}};
 function visible(c){return lineApp.classList.contains('open')&&!lineChat.hidden&&currentLineContact===c}
 function renderExtra(c){
@@ -134,10 +134,13 @@ function tickCall(){if(ending)return;
  const cue=(callContact==='parn'?window.PLOT3_PARN_CALL.subtitles:window.PLOT1_SUBTITLES).find(c=>time>=c.startTime&&time<c.endTime);
  if((cue?.id||'')!==activeId){clearCaption();if(cue){activeId=cue.id;subtitle.textContent=callContact==='parn'?cue.speaker+'：'+cue.text:cue.text;subtitle.classList.add('visible')}}
 }
-function endCall(complete){if(ending)return;ending=true;const parn=callContact==='parn';clearInterval(callTimer);clearAudio();audioContext?.close();status.textContent='Call Ended';
- if(parn){if(complete){s.plot3_parn_call_completed=true;p3().parnCallCompleted=true;p3().parnCallReady=false;p3().awaitMorning=true;p3().morningArmed=false;mark3('plot3_parn_call_completed')}else{p3().callElapsed=0;mark3('plot3_parn_call_unlocked')}}
+function endCall(complete){if(ending)return;ending=true;const parn=callContact==='parn';
+ // Ending after the final scripted line (including the silent tail) completes the story.
+ if(parn&&voiceStarted&&(voiceEndedAt!==null||voicePlayer.currentTime>=Math.max(...window.PLOT3_PARN_CALL.subtitles.map(c=>c.endTime))))complete=true;
+ clearInterval(callTimer);clearAudio();audioContext?.close();status.textContent='Call Ended';
+ if(parn){if(complete){s.plot3_parn_call_completed=true;p3().parnCallCompleted=true;p3().parnCallReady=false;p3().awaitMorning=true;mark3('plot3_parn_call_completed')}else{p3().callElapsed=0;mark3('plot3_parn_call_unlocked')}}
  else if(complete){s.callDone=true;state('plot1_call_completed')}else{s.callElapsed=0;state('plot1_secretary_contact')}
- setTimeout(()=>{call.hidden=true;call.classList.remove('plot-call-dim');lineApp.inert=false;openLine();returningParnCall=parn;openLineChat(parn?'parn':'secretary');returningParnCall=false;call.querySelector('h1').textContent='+66 33 222 1166';call.querySelector('p').textContent='Thailand';},1000)
+ setTimeout(()=>{call.hidden=true;call.classList.remove('plot-call-dim');lineApp.inert=false;openLine();openLineChat(parn?'parn':'secretary');call.querySelector('h1').textContent='+66 33 222 1166';call.querySelector('p').textContent='Thailand';},1000)
 }
 // Plot 2 shares this story save, LINE queue, and existing Facebook/Messenger UI.
 const data2=window.PLOT2_DATA;
@@ -258,13 +261,12 @@ function publishPlot3Post(){
  window.PheemInstagram.addPost(window.PLOT3_DATA.post);p3().postPublished=true;p3().scene=2;p3().event=0;p3().playerIndex=0;mark3('plot3_instagram_posted');enterPlot3Turn()
 }
 window.addEventListener('instagram:opened',publishPlot3Post);
-function processPlot3(){if(s.state==='plot2_completed'&&!p3())begin3();if(p3()){tickDraftAnimation();showBranchUI();if(p3().awaitMorning&&!visible('parn')){p3().morningArmed=true;if(!lineApp.classList.contains('open')&&p3().currentDate!=='2026年6月29日 10:42')applyPlot3Date(29,'10:42')}}}
+function processPlot3(){if(s.state==='plot2_completed'&&!p3())begin3();if(p3()){tickDraftAnimation();showBranchUI();}}
 
 // Small inline choices and draft-only animations; all use the existing story save.
 const branchChoices=el('div','plot3-choices');branchChoices.hidden=true;branchChoices.setAttribute('aria-label','选择给Parn的开场白');lineChat.insertBefore(branchChoices,lineApp.querySelector('.line-compose'));
 for(const choice of window.PLOT3_BRANCHES.choices){const b=el('button','',choice.text);b.dataset.branch=choice.id;b.onclick=()=>selectPlot3Branch(choice.id);branchChoices.append(b)}
 const tools=document.querySelector('#line-chat-tools');tools.removeAttribute('aria-hidden');const parnCallButton=el('button','line-icon plot3-call-button');parnCallButton.innerHTML=tools.innerHTML;parnCallButton.setAttribute('aria-label','拨打Parn电话');tools.replaceChildren(parnCallButton);parnCallButton.disabled=true;parnCallButton.onclick=()=>{if(p3()?.parnCallReady&&!s.plot3_parn_call_completed)startCall(false,'parn')};
-let returningParnCall=false;
 new MutationObserver(()=>{if(visible('parn'))onPlot3ChatOpened('parn')}).observe(lineApp,{attributes:true,attributeFilter:['class']});
 function plot3Contact(){return p3()?.segment&&p3().segment!=='final'?'parn':'thanwa'}
 function plot3Date(){return p3()?.currentDate||window.PLOT3_DATA.date}
@@ -295,7 +297,6 @@ function tickDraftAnimation(){
 function onPlot3ChatOpened(contact){
  if(!p3())return;showBranchUI();if(contact!=='parn'||!p3().parnUnlocked)return;
  if(!p3().introCompleted&&!p3().animation)animateDrafts('intro',window.PLOT3_BRANCHES.intro,1500,2000);
- else if(p3().awaitMorning&&p3().morningArmed&&!returningParnCall&&!p3().animation)animateDrafts('morning',window.PLOT3_BRANCHES.morningDrafts,[1500,1500,2000]);
  if(p3().animation){input.textContent=animationText();send.disabled=true}
 }
 function selectPlot3Branch(branch){
