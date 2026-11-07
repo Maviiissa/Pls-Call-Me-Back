@@ -67,7 +67,7 @@ function updateChatList(){
  for(const c of order.reverse()){const row=document.querySelector('#line-'+c),first=lineList.querySelector('.line-contact');if(row!==first)lineList.insertBefore(row,first)}
 }
 function updateNotification(){updateTyping();updateChatList();notification.hidden=!s.unread||visible('thanwa');notification.textContent='LINE · Thanwa\n'+(s.messages.filter(m=>m.contact==='thanwa'&&!m.me).at(-1)?.text||'新消息');document.querySelector('#line-thanwa').classList.toggle('plot-unread',s.unread)}
-notification.onclick=()=>{if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id==='facebook')n.inert=true}openLine();openLineChat('thanwa')};
+notification.onclick=()=>{if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app','instagram-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id!=='photos-app')n.inert=true}openLine();openLineChat('thanwa')};
 function add(m){if(!m.me)lastIncomingAt=Date.now();if(!s.messages.some(x=>x.id===m.id)){s.messages.push(m);if(!m.me&&!visible(m.contact)){s.unreadCounts=s.unreadCounts||{};s.unreadCounts[m.contact]=(s.unreadCounts[m.contact]||0)+1}}if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
 function schedule(contact,texts,delay,done,typing=true){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
@@ -135,12 +135,12 @@ function begin2(){
  s.plot2={lineStep:0,sms:[],smsQueue:[],orderStep:0,order:[],orderQueue:[],nodes:[],unread:0,orderActive:false};mark2('plot2_started');
  schedule('thanwa',data2.thanwa,4000,'plot2-intro',true);s.queue.forEach(m=>m.follow=true);save()
 }
-const messagesApp=el('section','messages-app');messagesApp.hidden=true;messagesApp.inert=true;messagesApp.setAttribute('aria-label','Messages');
+const messagesApp=el('section','messages-app');messagesApp.id='messages-app';messagesApp.hidden=true;messagesApp.inert=true;messagesApp.setAttribute('aria-label','Messages');
 messagesApp.innerHTML='<header class="sms-status"><span>20:35</span><span>● ▰</span></header><header class="sms-toolbar"><button class="sms-back" aria-label="返回短信列表">‹</button><h1>Messages</h1></header><div class="sms-list"></div><div class="sms-history" hidden></div><button class="sms-home" aria-label="从Messages回到主屏幕"></button>';phone.append(messagesApp);
 let smsChatOpen=false;
 const smsNotice=el('button','plot-notification sms-notice');smsNotice.hidden=true;smsNotice.setAttribute('aria-label','打开Techin的Messages消息');phone.append(smsNotice);
 function hideApps(){
- for(const id of ['facebook','line-app','photos-app']){const node=document.getElementById(id);node?.classList.remove('open');if(node&&id!=='photos-app')node.inert=true}
+ for(const id of ['facebook','line-app','photos-app','instagram-app']){const node=document.getElementById(id);node?.classList.remove('open');if(node&&id!=='photos-app')node.inert=true}
  messagesApp.hidden=true;messagesApp.inert=true;
 }
 function openMessages(chat=false){hideApps();home.inert=true;messagesApp.hidden=false;messagesApp.inert=false;smsChatOpen=chat;if(chat&&p2()){p2().unread=0;save()}renderSms();messagesApp.querySelector('.sms-back').focus()}
