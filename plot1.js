@@ -1,13 +1,33 @@
 (()=>{
 'use strict';
-// Set false for release: restore saved progress instead of restarting on refresh.
-const TEST_MODE=true;
+// Browser-local progress. Migrate the latest test save once without resetting it.
 const EXPLORATION_DELAY_MS=20000;
-const KEY=TEST_MODE?'pheem.plot1.test.v1':'pheem.plot1.v1';
-if(TEST_MODE)localStorage.removeItem(KEY);
-let s;try{s=JSON.parse(localStorage.getItem(KEY))}catch{};
+const KEY='pheem.plot1.v1';
+function readSave(raw){try{const value=JSON.parse(raw);return value&&Array.isArray(value.messages)&&Array.isArray(value.queue)?value:null}catch{return null}}
+const previousTest=readSave(localStorage.getItem('pheem.plot1.test.v1'));
+const previousRelease=readSave(localStorage.getItem(KEY));
+let s=previousRelease?.persistentProgress?previousRelease:(previousTest||previousRelease);
+if(previousTest&&!previousRelease?.persistentProgress){if(previousRelease)localStorage.setItem(KEY+'.before-persistence',JSON.stringify(previousRelease));localStorage.setItem(KEY,JSON.stringify(previousTest));localStorage.removeItem('pheem.plot1.test.v1')}
 s=s||{state:'plot1_exploration',startedAt:null,messages:[],queue:[],step:0,unread:false,callElapsed:0};
-const save=()=>localStorage.setItem(KEY,JSON.stringify(s));
+s.persistentProgress=true;
+let restoring=true;
+const resumeUi=s.ui;
+if(s.plot3?.animation&&s.plot3.animation.pausedAt===null)s.plot3.animation.pausedAt=s.savedAt||Date.now();
+function captureUi(){
+ const activeCall=document.querySelector('.plot-call:not([hidden])');if(activeCall)return {app:'call',contact:activeCall.getAttribute('aria-label')?.includes('Parn')?'parn':'techin'};
+ if(!phone.classList.contains('unlocked'))return {app:'lock'};
+ if(lineApp.classList.contains('open'))return {app:'line',contact:lineChat.hidden?null:currentLineContact,scroll:lineHistory.scrollTop};
+ if(document.querySelector('#messages-app:not([hidden])'))return {app:'messages',chat:!document.querySelector('.sms-history').hidden};
+ if(document.querySelector('#facebook.open'))return {app:'facebook',chat:!bakeryChat.hidden};
+ if(document.querySelector('#instagram-app.open'))return {app:'instagram'};
+ if(document.querySelector('#photos-app.open'))return {app:'photos'};
+ return {app:'home'}
+}
+const save=()=>{if(!restoring)s.ui=captureUi();s.savedAt=Date.now();localStorage.setItem(KEY,JSON.stringify(s))};
+window.PheemGameProgress={
+ getInstagram(){const profile=JSON.parse(JSON.stringify(s.instagram||{}));profile.posts=profile.posts||[];if(s.plot3?.postPublished&&!profile.posts.some(p=>p.id===window.PLOT3_DATA.post.id))profile.posts.unshift({...window.PLOT3_DATA.post});return profile},
+ saveInstagram(profile){s.instagram=JSON.parse(JSON.stringify(profile));save()}
+};
 const state=x=>{s.state=x;save()};
 const el=(tag,cls,text)=>{const n=document.createElement(tag);n.className=cls;if(text!==undefined)n.textContent=text;return n};
 const css=el('link','');css.rel='stylesheet';css.href='plot1.css';document.head.append(css);
@@ -113,7 +133,7 @@ function clearAudio(){voicePlayer.pause();retryAudio.hidden=true;clearCaption()}
 function playVoice(){return voicePlayer.play().then(()=>{retryAudio.hidden=true}).catch(()=>{if(!ending&&!call.hidden)retryAudio.hidden=false})}
 retryAudio.onclick=()=>{audioContext?.resume();playVoice()};
 voicePlayer.onpause=()=>{clearCaption()};
-voicePlayer.onended=()=>{clearCaption();voiceEndedAt=performance.now();if(callContact!=='parn')beep()};
+voicePlayer.onended=()=>{clearCaption();voiceEndedAt=performance.now();s.activeCall={contact:callContact,audioEnded:true};save();if(callContact!=='parn')beep()};
 function startCall(resume=false,contact='techin'){resume=resume===true;if((contact==='parn'?s.plot3_parn_call_completed:s.callDone)||!call.hidden)return;callContact=contact;call.classList.remove('plot-call-dim');call.setAttribute('aria-label','与'+(contact==='parn'?'Parn':'Techin')+'的模拟通话');call.querySelector('h1').textContent=contact==='parn'?'Parn':'+66 33 222 1166';call.hidden=false;lineApp.inert=true;ending=false;activeId='';voiceStarted=false;voiceEndedAt=null;retryAudio.hidden=true;
  try{audioContext=new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch{};call.querySelector('.end').focus();
  voicePlayer.src=callContact==='parn'?window.PLOT3_PARN_CALL.audioSrc:window.PLOT1_CALL_AUDIO;voicePlayer.volume=0;
@@ -124,10 +144,10 @@ function startCall(resume=false,contact='techin'){resume=resume===true;if((conta
 }
 function beep(){if(!audioContext)return;for(let i=0;i<3;i++){const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=480;g.gain.value=.04;o.connect(g);g.connect(audioContext.destination);const t=audioContext.currentTime+i*.45;o.start(t);o.stop(t+.22)}}
 function tickCall(){if(ending)return;
- if((performance.now()-callStart)/1000<3){if(callContact==='parn')p3().callElapsed=(performance.now()-callStart)/1000;else s.callElapsed=(performance.now()-callStart)/1000;save();status.textContent='Calling…';return}
- if(!voiceStarted){voiceStarted=true;if(callContact==='parn')mark3('plot3_parn_in_call');else state('plot1_in_call');prime.then(()=>{if(ending||call.hidden)return;voicePlayer.currentTime=resumeOffset;playVoice()})}
+ if((performance.now()-callStart)/1000<3){if(callContact==='parn')p3().callElapsed=(performance.now()-callStart)/1000;else s.callElapsed=(performance.now()-callStart)/1000;s.activeCall={contact:callContact,audioEnded:false};save();status.textContent='Calling…';return}
+ if(!voiceStarted){voiceStarted=true;if(callContact==='parn')mark3('plot3_parn_in_call');else state('plot1_in_call');prime.then(async()=>{if(ending||call.hidden)return;if(voicePlayer.readyState<1)await new Promise(resolve=>voicePlayer.addEventListener('loadedmetadata',resolve,{once:true}));if(ending||call.hidden)return;voicePlayer.currentTime=resumeOffset;playVoice()})}
  call.querySelector('h1').textContent=callContact==='parn'?'Parn':'Techin';call.querySelector('p').textContent='mobile · Thailand';
- const time=voicePlayer.currentTime,sec=Math.floor(time+(callContact==='parn'&&voiceEndedAt!==null?(performance.now()-voiceEndedAt)/1000:0));if(callContact==='parn')p3().callElapsed=3+time;else s.callElapsed=3+time;save();status.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+ const time=voicePlayer.currentTime,sec=Math.floor(time+(callContact==='parn'&&voiceEndedAt!==null?(performance.now()-voiceEndedAt)/1000:0));if(callContact==='parn')p3().callElapsed=3+time;else s.callElapsed=3+time;s.activeCall={contact:callContact,audioEnded:voiceEndedAt!==null};save();status.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
  if(voiceEndedAt!==null){if(performance.now()-voiceEndedAt>=(callContact==='parn'?window.PLOT3_PARN_CALL.quietAfterAudio*1000:2300))endCall(true);return}
  if(voicePlayer.paused){clearCaption();return}
  if(callContact==='parn'&&time>=window.PLOT3_PARN_CALL.dimAt)call.classList.add('plot-call-dim');
@@ -137,7 +157,7 @@ function tickCall(){if(ending)return;
 function endCall(complete){if(ending)return;ending=true;const parn=callContact==='parn';
  // Ending after the final scripted line (including the silent tail) completes the story.
  if(parn&&voiceStarted&&(voiceEndedAt!==null||voicePlayer.currentTime>=Math.max(...window.PLOT3_PARN_CALL.subtitles.map(c=>c.endTime))))complete=true;
- clearInterval(callTimer);clearAudio();audioContext?.close();status.textContent='Call Ended';
+ clearInterval(callTimer);s.activeCall=null;clearAudio();audioContext?.close();status.textContent='Call Ended';
  if(parn){if(complete){s.plot3_parn_call_completed=true;p3().parnCallCompleted=true;p3().parnCallReady=false;p3().awaitMorning=true;mark3('plot3_parn_call_completed')}else{p3().callElapsed=0;mark3('plot3_parn_call_unlocked')}}
  else if(complete){s.callDone=true;state('plot1_call_completed')}else{s.callElapsed=0;state('plot1_secretary_contact')}
  setTimeout(()=>{call.hidden=true;call.classList.remove('plot-call-dim');lineApp.inert=false;openLine();openLineChat(parn?'parn':'secretary');call.querySelector('h1').textContent='+66 33 222 1166';call.querySelector('p').textContent='Thailand';},1000)
@@ -322,6 +342,25 @@ function finishPlot3Segment(){
 
 window.addEventListener('keydown',e=>{if(!call.hidden&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation()}},true);
 window.addEventListener('pagehide',()=>{save();clearAudio()});
-// Return buttons reuse the existing phone navigation; pending messages stay in storage.
-setInterval(process,200);process();compose();if(['plot1_calling','plot1_in_call'].includes(s.state))startCall(true);
+function restoreGame(){
+ if(s.plot3){const match=(s.plot3.currentDate||window.PLOT3_DATA.date).match(/6月(\d+)日 (\d+:\d+)/);applyPlot3Date(match?Number(match[1]):28,match?match[2]:'15:34')}
+ else if(s.plot2?.orderActive)applyOrderDate();
+ const ui=resumeUi||{app:'lock'};
+ if(ui.app!=='lock')unlock();
+ if(ui.app==='line'){openLine();if(ui.contact){openLineChat(ui.contact);if(Number.isFinite(ui.scroll))lineHistory.scrollTop=ui.scroll}}
+ else if(ui.app==='messages')openMessages(!!ui.chat);
+ else if(ui.app==='facebook'){openFacebook();if(ui.chat)openBakeryChat()}
+ else if(ui.app==='instagram')window.PheemInstagram.open();
+ else if(ui.app==='photos')document.querySelector('.app-hit[aria-label="Photos"]').click();
+ const pendingCall=s.activeCall||(['plot1_calling','plot1_in_call'].includes(s.state)?{contact:'techin'}:['plot3_parn_calling','plot3_parn_in_call'].includes(s.state)?{contact:'parn'}:null);
+ if(pendingCall){
+  if(!phone.classList.contains('unlocked'))unlock();
+  if(pendingCall.audioEnded){callContact=pendingCall.contact;ending=false;call.hidden=false;call.setAttribute('aria-label','与'+(callContact==='parn'?'Parn':'Techin')+'的模拟通话');call.querySelector('h1').textContent=callContact==='parn'?'Parn':'Techin';endCall(true)}
+  else startCall(true,pendingCall.contact)
+ }else if(ui.app==='call'){openLine();openLineChat(ui.contact==='parn'?'parn':'secretary')}
+ restoring=false;process();compose();save()
+}
+// Pending replies keep their absolute deadlines; rendered UI waits for all app scripts.
+setInterval(process,200);process();compose();
+if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',restoreGame,{once:true});else queueMicrotask(restoreGame);
 })();

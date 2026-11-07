@@ -1,6 +1,6 @@
 # Plot 2
 
-Plot 2 shares the existing save/state machine in plot1.js. Dialogue is defined in plot2-data.js. The test setting still resets the entire story on refresh, while ordinary app navigation retains all messages and steps.
+Plot 2 shares the existing save/state machine in plot1.js. Dialogue is defined in plot2-data.js. Refresh and ordinary app navigation retain messages, order steps and pending replies through the shared browser-local save.
 
 After the last Plot 1 reply, Thanwa waits three seconds, types in the LINE header for one second, then sends the three supplied bubbles one second apart. The player explicitly sends 嗯 and 买500份. Five seconds after the second reply, Techin sends his first Messages bubble; the Facebook card follows one second later. Messages had only a home icon and no existing contact/history implementation: its existing icon now opens a single Messages view with the Techin conversation. No Techin LINE contact or second Messages icon was created.
 

@@ -1,6 +1,6 @@
 # Plot 3
 
-Plot 3 uses the existing story object and localStorage key in plot1.js. TEST_MODE still resets the entire story on refresh. App navigation retains messages, pending replies, animations and the selected branch. No Plot 4 scene is defined or triggered.
+Plot 3 uses the existing story object and localStorage key in plot1.js. Progress persists across refreshes in the same browser. App navigation retains messages, pending replies, animations and the selected branch. No Plot 4 scene is defined or triggered.
 
 ## Existing scenes
 
@@ -47,7 +47,7 @@ Shared call code now selects the Techin or Parn configuration without creating a
 
 ## Validation
 
-See tests/README.md and tests/plot3.browser.cjs for repeatable routes. Each route runs through Plot 1, Plot 2, the original Plot 3 scenes, the intro animation, one branch and the common ending. Checks cover app switching during animation and replies, manual sending, immutable selection, no draft bubbles, existing breakup text, photo viewer, Instagram deduplication, correct dates, branch-specific phone access, early End/retry, speaker captions, natural audio ending, morning continuation, no Plot 4, no duplicate messages, and refresh reset. The range-aware local server supports audio seeking just as static hosting does.
+See tests/README.md and tests/plot3.browser.cjs for repeatable routes. Each route runs through Plot 1, Plot 2, the original Plot 3 scenes, the intro animation, one branch and the common ending. Checks cover app switching during animation and replies, manual sending, immutable selection, no draft bubbles, existing breakup text, photo viewer, Instagram deduplication, correct dates, branch-specific phone access, early End/retry, speaker captions, natural audio ending, morning continuation, no Plot 4, no duplicate messages, and refresh persistence. The range-aware local server supports audio seeking just as static hosting does.
 
 ## Post-call continuation fix
 

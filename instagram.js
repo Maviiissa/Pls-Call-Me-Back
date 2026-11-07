@@ -1,6 +1,7 @@
 (()=>{
 'use strict';
-const profile=window.PHEEM_INSTAGRAM;
+const profile=window.PHEEM_INSTAGRAM;Object.assign(profile,window.PheemGameProgress?.getInstagram()||{});
+const saveProfile=()=>window.PheemGameProgress?.saveInstagram({name:profile.name,bio:profile.bio,posts:profile.posts});
 const make=(tag,cls,text)=>{const n=document.createElement(tag);n.className=cls;if(text!==undefined)n.textContent=text;return n};
 const style=make('link','');style.rel='stylesheet';style.href='instagram.css';document.head.append(style);
 const app=make('section','instagram-app');app.id='instagram-app';app.inert=true;app.setAttribute('aria-label','Pheem Instagram个人主页');
@@ -24,12 +25,12 @@ function render(){
  if(posts.length){const grid=make('div','ig-post-grid');for(const post of posts){const b=make('button','');b.setAttribute('aria-label',post.caption||'打开帖子');const im=make('img','');im.src=post.image;im.alt=post.caption||'Pheem的帖子';b.append(im);b.onclick=()=>openPost(post);grid.append(b)}content.append(grid);return}
  const empty=make('section','ig-empty');const circle=make('div','ig-camera');circle.innerHTML='<svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width=".8" stroke-linejoin="round">'+paths.camera+'</svg>';empty.append(circle,make('h2','',selected==='posts'?'No posts yet':selected==='reels'?'No reels yet':'No tagged posts'));if(selected==='posts'){empty.append(make('p','','Share a photo or video to get started.'));const create=make('button','ig-create','Create post');create.disabled=true;empty.append(create)}content.append(empty)
 }
-const dialog=make('section','ig-edit');dialog.hidden=true;dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','Edit profile');dialog.append(make('h2','','Edit profile'));const editName=make('input','');editName.setAttribute('aria-label','Name');const editBio=make('textarea','');editBio.setAttribute('aria-label','Bio');const done=make('button','','Done');done.onclick=()=>{profile.name=editName.value;profile.bio=editBio.value;name.textContent=profile.name;bio.textContent=profile.bio;dialog.hidden=true;edit.focus()};const cancel=make('button','','Cancel');cancel.onclick=()=>dialog.hidden=true;dialog.append(editName,editBio,done,cancel);app.append(dialog);const toast=make('div','ig-toast');toast.hidden=true;toast.setAttribute('role','status');app.append(toast);
+const dialog=make('section','ig-edit');dialog.hidden=true;dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','Edit profile');dialog.append(make('h2','','Edit profile'));const editName=make('input','');editName.setAttribute('aria-label','Name');const editBio=make('textarea','');editBio.setAttribute('aria-label','Bio');const done=make('button','','Done');done.onclick=()=>{profile.name=editName.value;profile.bio=editBio.value;saveProfile();name.textContent=profile.name;bio.textContent=profile.bio;dialog.hidden=true;edit.focus()};const cancel=make('button','','Cancel');cancel.onclick=()=>dialog.hidden=true;dialog.append(editName,editBio,done,cancel);app.append(dialog);const toast=make('div','ig-toast');toast.hidden=true;toast.setAttribute('role','status');app.append(toast);
 function open(){for(const id of ['facebook','line-app','photos-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id!=='photos-app')n.inert=true}const sms=document.querySelector('#messages-app');if(sms){sms.hidden=true;sms.inert=true}home.inert=true;app.inert=false;app.classList.add('open');render();own.focus({preventScroll:true});window.dispatchEvent(new Event('instagram:opened'))}
 function close(){dialog.hidden=true;detail.hidden=true;app.classList.remove('open');app.inert=true;home.inert=false;document.querySelector('.app-hit[aria-label="Instagram"]').focus({preventScroll:true})}
 document.querySelector('.app-hit[aria-label="Instagram"]').onclick=open;
 window.addEventListener('keydown',e=>{if(!app.classList.contains('open')||e.key!=='Escape')return;e.preventDefault();e.stopImmediatePropagation();if(!dialog.hidden)dialog.hidden=true;else if(!detail.hidden)detail.hidden=true;else close()},true);
 // Story integration point: idempotent insertion without recreating the profile UI.
-window.PheemInstagram={open,close,addPost(post){if(!post.id||!post.image)throw new Error('Instagram posts require id and image');if(profile.posts.some(p=>p.id===post.id))return;profile.posts.unshift({...post});render()},render};
+window.PheemInstagram={open,close,addPost(post){if(!post.id||!post.image)throw new Error('Instagram posts require id and image');if(profile.posts.some(p=>p.id===post.id))return;profile.posts.unshift({...post});saveProfile();render()},render};
 phone.append(app);render();
 })();

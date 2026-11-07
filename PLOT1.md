@@ -1,12 +1,12 @@
-## Current test settings
+## Browser-local progress
 
-`TEST_MODE=true` in plot1.js restarts Plot 1 on each refresh. Test saves use the separate key `pheem.plot1.test.v1`; release saves remain untouched. Set TEST_MODE=false to restore persistent release behavior. The unlock delay is currently 20 seconds (`EXPLORATION_DELAY_MS=20000`).
+Progress now persists across refreshes in `pheem.plot1.v1`. The former reset-on-refresh test mode has been removed. The latest valid legacy test save is migrated once; persistent saves then take precedence over any retired test key written by an older tab. The first-unlock delay remains 20 seconds.
 
 # Plot 1
 
 Open index.html through an HTTP server. The first unlock starts a single 20-second deadline. LINE notifications link to Thanwa; tap the composer to fill the next scripted reply, then tap the arrow to send. Existing history arrays remain unchanged.
 
-When TEST_MODE is false, progress and added messages persist in browser localStorage under `pheem.plot1.v1`. Refresh resumes deadlines and queued messages without duplication. Clearing browser site data removes the save. A call interrupted by refresh resumes at its saved elapsed time. Early End returns to S and allows retry; only a completed call unlocks the follow-up. Completed calls cannot be replayed.
+Progress and added messages persist in browser localStorage under `pheem.plot1.v1`. Refresh resumes deadlines and queued messages without duplication. Clearing browser site data removes the save. A call interrupted by refresh resumes at its saved elapsed time. Early End returns to S and allows retry; only a completed call unlocks the follow-up. Completed calls cannot be replayed.
 
 `plot1-subtitles.js` contains the six verbatim supplied lines. Times are seconds from connection, after the three-second dialing phase. Each cue has id, speaker, text, startTime, endTime, audioSrc. The demo uses extracted source-video voice, with no translation or speech synthesis. The three end tones are synthesized locally.
 
