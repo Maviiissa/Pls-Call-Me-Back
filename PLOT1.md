@@ -21,3 +21,7 @@ The replacement MOV's complete audio is stored in assets/techin-call-full.m4a (a
 The recording's ended event clears subtitles and starts three end tones. After the tones plus a one-second pause, Call Ended is displayed for one second, then the game returns to S and unlocks the follow-up.
 
 The LINE list updates latest-message previews, timestamps, unread counts, and conversation ordering for new story messages. Opening a conversation clears its unread count.
+
+## Added Thanwa replies before contacting S
+
+After all four explanation messages finish, the typing indicator stops. The player sends `我找秘书问Techin电话`, then `我自己去问他` as two separate preset replies. Only after both are sent does S offer `把Techin的电话给我`. These replies are stored with unique message IDs; their sent count determines the next preset, without re-triggering Thanwa's explanation or changing the post-call follow-up counter.

@@ -16,11 +16,14 @@ const input=lineApp.querySelector('.line-compose-input');input.setAttribute('rol
 const oldSend=lineApp.querySelector('.line-send-icon');const send=el('button','line-icon plot-send','➤');send.setAttribute('aria-label','发送预设回复');oldSend.replaceWith(send);
 const typing=el('small','plot-typing','正在输入……');typing.hidden=true;document.querySelector('#line-chat-tools').append(typing);
 let draft='',draftContact='';
+const beforeContact=['我找秘书问Techin电话','我自己去问他'];
+const beforeContactSent=()=>s.messages.filter(m=>m.id.startsWith('player-before-contact-')).length;
 const follow=['……是我误会了。','我去问了Techin。','还能怎么办。','Techin给了我她蛋糕店的地址和FB','你帮我群里说一声，明天请大家吃蛋糕','不许有任何人拒绝'];
 function preset(){if(s.queue.length)return '';if(currentLineContact==='thanwa'){
  if(s.state==='plot1_thanwa_notification')return '？？';
+ if(s.state==='plot1_thanwa_replied')return beforeContact[beforeContactSent()]||'';
  if(['plot1_call_completed','plot1_thanwa_followup'].includes(s.state))return follow[s.step]||'';
- }if(currentLineContact==='secretary'&&s.state==='plot1_thanwa_replied')return '把Techin的电话给我';return ''}
+ }if(currentLineContact==='secretary'&&s.state==='plot1_thanwa_replied'&&beforeContactSent()===beforeContact.length)return '把Techin的电话给我';return ''}
 function compose(){draft='';input.textContent=preset()?'点击输入回复':'Aa';send.disabled=true;}
 function fill(){draft=preset();draftContact=currentLineContact;if(draft){input.textContent=draft;send.disabled=false}}
 input.onclick=fill;input.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fill()}};
@@ -67,9 +70,11 @@ function process(){
 new MutationObserver(()=>{if(phone.classList.contains('unlocked')&&!s.startedAt){s.startedAt=Date.now();save()}}).observe(phone,{attributes:true,attributeFilter:['class']});
 const originalUnlock=unlock;unlock=function(){originalUnlock();if(!s.startedAt){s.startedAt=Date.now();save()}};
 send.onclick=()=>{if(!draft||draftContact!==currentLineContact||draft!==preset())return;const c=currentLineContact,text=draft;
+ const isBeforeContact=c==='thanwa'&&s.state==='plot1_thanwa_replied';
  const isFollow=c==='thanwa'&&['plot1_call_completed','plot1_thanwa_followup'].includes(s.state);
- add({id:'player-'+(isFollow?'follow-'+s.step:c),contact:c,text,me:true,date:isFollow?'2026年6月26日 11:26':'2026年6月25日 20:35'});
+ add({id:'player-'+(isBeforeContact?'before-contact-'+beforeContactSent():isFollow?'follow-'+s.step:c),contact:c,text,me:true,date:isFollow?'2026年6月26日 11:26':'2026年6月25日 20:35'});
  if(c==='secretary'){state('plot1_secretary_contact');schedule(c,['好的，Khun Phakinee。请稍等。','@contact'],3000,'contact');s.queue[1].due+=1000;save()}
+ else if(isBeforeContact){save()}
  else if(!isFollow){schedule(c,['你没看Techin和那个Wang的官宣吗？','他俩在一起了啊','Parn怎么可能喜欢他？','你是不是误会什么了？'],4000,'explanation',true);s.typingAt=Date.now()+3000;save()}
  else{s.step++;state(s.step===6?'plot1_completed':'plot1_thanwa_followup');if(s.step===2){schedule(c,['我就说吧！','那你现在打算怎么办？'],1000,'follow');s.queue.forEach(m=>m.follow=true);save()}}
  compose();
