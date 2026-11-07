@@ -27,6 +27,7 @@ const beforeContact=['我找秘书问Techin电话','我自己去问他'];
 const beforeContactSent=()=>s.messages.filter(m=>m.id.startsWith('player-before-contact-')).length;
 const follow=['……是我误会了。','我去问了Techin。','还能怎么办。','Techin给了我她蛋糕店的地址和FB','你帮我群里说一声，明天请大家吃蛋糕','不许有任何人拒绝'];
 function preset(){if(s.queue.length)return '';if(currentLineContact==='thanwa'){
+ if(s.state==='plot2_thanwa_completed')return window.PLOT2_DATA.pheem[s.plot2.lineStep]||'';
  if(s.state==='plot1_thanwa_notification')return '？？';
  if(s.state==='plot1_thanwa_replied')return beforeContact[beforeContactSent()]||'';
  if(['plot1_call_completed','plot1_thanwa_followup'].includes(s.state))return follow[s.step]||'';
@@ -71,16 +72,18 @@ function add(m){if(!m.me)lastIncomingAt=Date.now();if(!s.messages.some(x=>x.id==
 function schedule(contact,texts,delay,done,typing=true){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
  if(s.startedAt&&s.state==='plot1_exploration'&&Date.now()-s.startedAt>=EXPLORATION_DELAY_MS){state('plot1_thanwa_notification');schedule('thanwa',['？','Techin？','他不是Gay吗？'],0,'intro')}
- while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
- updateNotification();
+ while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='plot2-intro')mark2('plot2_thanwa_completed');if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
+ updateNotification();processPlot2();
 }
 new MutationObserver(()=>{if(phone.classList.contains('unlocked')&&!s.startedAt){s.startedAt=Date.now();save()}}).observe(phone,{attributes:true,attributeFilter:['class']});
 const originalUnlock=unlock;unlock=function(){originalUnlock();if(!s.startedAt){s.startedAt=Date.now();save()}};
 send.onclick=()=>{if(!draft||draftContact!==currentLineContact||draft!==preset())return;const c=currentLineContact,text=draft;
+ const isPlot2=c==='thanwa'&&s.state==='plot2_thanwa_completed';
  const isBeforeContact=c==='thanwa'&&s.state==='plot1_thanwa_replied';
  const isFollow=c==='thanwa'&&['plot1_call_completed','plot1_thanwa_followup'].includes(s.state);
- add({id:'player-'+(isBeforeContact?'before-contact-'+beforeContactSent():isFollow?'follow-'+s.step:c),contact:c,text,me:true,date:isFollow?'2026年6月26日 11:26':'2026年6月25日 20:35'});
- if(c==='secretary'){state('plot1_secretary_contact');schedule(c,['好的，Khun Phakinee。请稍等。','@contact'],3000,'contact');s.queue[1].due+=1000;save()}
+ add({id:'player-'+(isPlot2?'plot2-'+s.plot2.lineStep:isBeforeContact?'before-contact-'+beforeContactSent():isFollow?'follow-'+s.step:c),contact:c,text,me:true,date:(isFollow||isPlot2)?'2026年6月26日 11:26':'2026年6月25日 20:35'});
+ if(isPlot2){s.plot2.lineStep++;if(s.plot2.lineStep===2&&!s.plot2.smsQueue.length&&!s.plot2.sms.length){const due=Date.now()+5000;s.plot2.smsQueue=[{id:'techin-sms-1',text:'Parn的店在这里。',due},{id:'techin-sms-2',card:true,due:due+1000}]};save()}
+ else if(c==='secretary'){state('plot1_secretary_contact');schedule(c,['好的，Khun Phakinee。请稍等。','@contact'],3000,'contact');s.queue[1].due+=1000;save()}
  else if(isBeforeContact){save()}
  else if(!isFollow){schedule(c,['你没看Techin和那个Wang的官宣吗？','他俩在一起了啊','Parn怎么可能喜欢他？','你是不是误会什么了？'],4000,'explanation',true);s.typingAt=Date.now()+3000;save()}
  else{s.step++;state(s.step===6?'plot1_completed':'plot1_thanwa_followup');if(s.step===2){schedule(c,['我就说吧！','那你现在打算怎么办？'],1000,'follow');s.queue.forEach(m=>m.follow=true);save()}}
@@ -124,6 +127,94 @@ function tickCall(){if(ending)return;
 }
 function endCall(complete){if(ending)return;ending=true;clearInterval(callTimer);clearAudio();audioContext?.close();status.textContent='Call Ended';if(complete){s.callDone=true;state('plot1_call_completed')}else{s.callElapsed=0;state('plot1_secretary_contact')}
  setTimeout(()=>{call.hidden=true;lineApp.inert=false;openLine();openLineChat('secretary');call.querySelector('h1').textContent='+66 33 222 1166';call.querySelector('p').textContent='Thailand';},1000)}
+// Plot 2 shares this story save, LINE queue, and existing Facebook/Messenger UI.
+const data2=window.PLOT2_DATA;
+const p2=()=>s.plot2;
+function mark2(node){s.plot2.nodes=s.plot2.nodes||[];if(!s.plot2.nodes.includes(node))s.plot2.nodes.push(node);state(node)}
+function begin2(){
+ s.plot2={lineStep:0,sms:[],smsQueue:[],orderStep:0,order:[],orderQueue:[],nodes:[],unread:0,orderActive:false};mark2('plot2_started');
+ schedule('thanwa',data2.thanwa,4000,'plot2-intro',true);s.queue.forEach(m=>m.follow=true);save()
+}
+const messagesApp=el('section','messages-app');messagesApp.hidden=true;messagesApp.inert=true;messagesApp.setAttribute('aria-label','Messages');
+messagesApp.innerHTML='<header class="sms-status"><span>20:35</span><span>● ▰</span></header><header class="sms-toolbar"><button class="sms-back" aria-label="返回短信列表">‹</button><h1>Messages</h1></header><div class="sms-list"></div><div class="sms-history" hidden></div><button class="sms-home" aria-label="从Messages回到主屏幕"></button>';phone.append(messagesApp);
+let smsChatOpen=false;
+const smsNotice=el('button','plot-notification sms-notice');smsNotice.hidden=true;smsNotice.setAttribute('aria-label','打开Techin的Messages消息');phone.append(smsNotice);
+function hideApps(){
+ for(const id of ['facebook','line-app','photos-app']){const node=document.getElementById(id);node?.classList.remove('open');if(node&&id!=='photos-app')node.inert=true}
+ messagesApp.hidden=true;messagesApp.inert=true;
+}
+function openMessages(chat=false){hideApps();home.inert=true;messagesApp.hidden=false;messagesApp.inert=false;smsChatOpen=chat;if(chat&&p2()){p2().unread=0;save()}renderSms();messagesApp.querySelector('.sms-back').focus()}
+function closeMessages(){messagesApp.hidden=true;messagesApp.inert=true;home.inert=false;document.querySelector('.app-hit[aria-label="Messages"]').focus()}
+messagesApp.querySelector('.sms-home').onclick=closeMessages;
+messagesApp.querySelector('.sms-back').onclick=()=>{if(smsChatOpen){smsChatOpen=false;renderSms()}else closeMessages()};
+document.querySelector('.app-hit[aria-label="Messages"]').onclick=()=>openMessages(false);
+smsNotice.onclick=()=>{if(!phone.classList.contains('unlocked'))unlock();openMessages(true)};
+function renderSms(){
+ const list=messagesApp.querySelector('.sms-list'),history=messagesApp.querySelector('.sms-history');list.hidden=smsChatOpen;history.hidden=!smsChatOpen;
+ messagesApp.querySelector('h1').textContent=smsChatOpen?'Techin':'Messages';list.replaceChildren();history.replaceChildren();
+ const sms=p2()?.sms||[];
+ if(sms.length){const contact=el('button','sms-contact');contact.append(el('strong','','Techin'),el('p','',sms.at(-1).card?'Pan Pastry-ne · Facebook Page':sms.at(-1).text));if(p2().unread)contact.append(el('span','sms-unread',String(p2().unread)));contact.onclick=()=>openMessages(true);list.append(contact)}
+ else list.append(el('p','sms-empty','No Messages'));
+ if(smsChatOpen){history.append(el('div','chat-date','2026年6月26日 11:26'));for(const m of sms){const bubble=el('div','sms-bubble');if(m.card){
+ const card=el('button','sms-facebook-card');const avatar=el('div','fb-avatar');card.append(avatar,el('strong','','Pan Pastry-ne'),el('small','','Facebook Page'));card.onclick=()=>{hideApps();openFacebook();if(p2()&&!p2().facebookOpened){p2().facebookOpened=true;mark2('plot2_facebook_opened')}};bubble.append(card)
+ }else bubble.textContent=m.text;history.append(bubble)}history.scrollTop=history.scrollHeight}
+ smsNotice.hidden=!(p2()?.unread)||!messagesApp.hidden;smsNotice.textContent='Messages · Techin\n'+(sms.at(-1)?.card?'Pan Pastry-ne · Facebook Page':sms.at(-1)?.text||'')
+}
+const orderInput=bakeryChat.querySelector('.chat-input'),orderSend=bakeryChat.querySelector('.chat-compose button'),orderHistory=bakeryChat.querySelector('#chat-history');
+const orderText=el('span','');orderText.style.color='#080808';orderInput.prepend(orderText);for(const n of [...orderInput.childNodes])if(n.nodeType===Node.TEXT_NODE)n.remove();
+orderInput.setAttribute('role','button');orderInput.tabIndex=0;orderInput.setAttribute('aria-label','填入蛋糕订单预设回复');orderSend.setAttribute('aria-label','发送订单消息');
+const orderTyping=el('small','','对方正在输入……');orderTyping.hidden=true;bakeryChat.querySelector('.chat-header>div:last-child').append(orderTyping);
+let orderDraft='',nameAnimating=false,nameToken=0;
+function orderReady(){return !!p2()?.orderActive&&!p2().orderQueue.length&&p2().orderStep<data2.order.length}
+function syncOrderComposer(){orderDraft='';orderText.textContent='Aa';orderSend.disabled=true}
+function orderVisible(){return fb.classList.contains('open')&&!bakeryChat.hidden}
+function applyOrderDate(){
+ document.querySelector('.date').textContent='Saturday, 27 June 2026';document.querySelector('.time').textContent='14:12';document.querySelector('.day').textContent='SATURDAY';document.querySelector('.daynum').textContent='27';
+ lock.setAttribute('aria-label','锁屏，2026年6月27日，14:12。向上滑动解锁');document.querySelector('.calendar').setAttribute('aria-label','2026年6月27日 星期六。Meeting 上午9:45。明天 Annual Meet 10:30');
+ for(const n of document.querySelectorAll('.status>span:first-child,.photos-status>span:first-child,.sms-status>span:first-child'))if(n.textContent!=='Wi-Fi Call')n.textContent='14:12'
+}
+const baseBakeryOpen=openBakeryChat;openBakeryChat=function(){baseBakeryOpen();if(p2()?.facebookOpened&&!p2().orderActive){p2().orderActive=true;mark2('plot2_messenger_started');applyOrderDate()}renderOrder();syncOrderComposer()};
+fb.querySelector('#fb-message').onclick=()=>openBakeryChat();
+const originalBakeryClose=closeBakeryChat;closeBakeryChat=function(focus=true){nameToken++;nameAnimating=false;originalBakeryClose(focus);syncOrderComposer()};
+bakeryChat.querySelector('.chat-back').onclick=()=>closeBakeryChat();
+document.querySelector('.app-hit[aria-label="Messenger"]').onclick=()=>{hideApps();openFacebook();openBakeryChat()};
+function renderOrder(){
+ for(const n of orderHistory.querySelectorAll('[data-plot2]'))n.remove();
+ if(!p2()?.orderActive)return;
+ const date=el('div','chat-date','2026年6月27日 14:12');date.dataset.plot2='date';orderHistory.append(date);
+ for(const m of p2().order){const row=el('div','chat-row'+(m.me?' outgoing':''));row.dataset.plot2=m.id;row.setAttribute('aria-label',m.me?'Pheem':'Parn');if(!m.me)row.append(el('div','fb-avatar'));row.append(el('div','chat-bubble',m.text));orderHistory.append(row)}
+ const scroll=bakeryChat.querySelector('.chat-scroll');scroll.scrollTop=scroll.scrollHeight
+}
+function fillOrder(){
+ if(!orderReady()||nameAnimating)return;
+ if(p2().orderStep!==3){orderDraft=data2.order[p2().orderStep];orderText.textContent=orderDraft;orderSend.disabled=false;return}
+ nameAnimating=true;orderSend.disabled=true;const token=++nameToken;
+ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ (async()=>{for(const name of data2.nameDrafts.slice(0,2)){
+ orderText.textContent=name;await wait(650);if(token!==nameToken)return;
+ for(let i=name.length-1;i>=0;i--){orderText.textContent=name.slice(0,i);await wait(55);if(token!==nameToken)return}
+ await wait(200);if(token!==nameToken)return}
+ nameAnimating=false;if(!orderReady())return;orderDraft=data2.order[3];orderText.textContent=orderDraft;orderSend.disabled=false})()
+}
+orderInput.onclick=fillOrder;orderInput.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fillOrder()}};
+orderSend.onclick=()=>{
+ if(!orderReady()||nameAnimating||orderDraft!==data2.order[p2().orderStep])return;
+ const step=p2().orderStep;p2().order.push({id:'order-player-'+step,text:orderDraft,me:true});p2().orderStep++;
+ if(data2.replies[step]){const now=Date.now();p2().orderQueue=data2.replies[step].map((text,i)=>({id:'order-parn-'+step+'-'+i,text,due:now+6000+i*1000,typingAt:now+3000}))}
+ if(p2().orderStep===data2.order.length){mark2('plot2_order_completed');mark2('plot2_completed')}
+ save();renderOrder();syncOrderComposer();updateOrderTyping()
+};
+function updateOrderTyping(){const next=p2()?.orderQueue[0];orderTyping.hidden=!(orderVisible()&&next&&Date.now()>=next.typingAt)}
+function processPlot2(){
+ if(s.state==='plot1_completed'&&!p2())begin2();
+ if(!p2())return;
+ const now=Date.now();
+ while(p2().smsQueue.length&&now>=p2().smsQueue[0].due){const m=p2().smsQueue.shift();if(!p2().sms.some(x=>x.id===m.id))p2().sms.push(m);if(messagesApp.hidden||!smsChatOpen)p2().unread++;else p2().unread=0;if(!p2().smsQueue.length)mark2('plot2_techin_message_received');save();renderSms()}
+ while(p2().orderQueue.length&&now>=p2().orderQueue[0].due){const m=p2().orderQueue.shift();if(!p2().order.some(x=>x.id===m.id))p2().order.push(m);save();renderOrder();if(!p2().orderQueue.length)syncOrderComposer()}
+ updateOrderTyping();
+}
+window.addEventListener('keydown',e=>{if(!messagesApp.hidden&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();if(smsChatOpen){smsChatOpen=false;renderSms()}else closeMessages()}},true);
+
 window.addEventListener('keydown',e=>{if(!call.hidden&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation()}},true);
 window.addEventListener('pagehide',()=>{save();clearAudio()});
 // Return buttons reuse the existing phone navigation; pending messages stay in storage.
