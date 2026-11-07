@@ -6,16 +6,18 @@
 
 Open index.html through an HTTP server. The first unlock starts a single 20-second deadline. LINE notifications link to Thanwa; tap the composer to fill the next scripted reply, then tap the arrow to send. Existing history arrays remain unchanged.
 
-Progress and added messages persist in browser localStorage under `pheem.plot1.v1`. Refresh resumes deadlines and queued messages without duplication. Clearing browser site data removes the save. A call interrupted by refresh resumes at its saved elapsed time. Early End returns to S and allows retry; only a completed call unlocks the follow-up. Completed calls cannot be replayed.
+When TEST_MODE is false, progress and added messages persist in browser localStorage under `pheem.plot1.v1`. Refresh resumes deadlines and queued messages without duplication. Clearing browser site data removes the save. A call interrupted by refresh resumes at its saved elapsed time. Early End returns to S and allows retry; only a completed call unlocks the follow-up. Completed calls cannot be replayed.
 
-`plot1-subtitles.js` contains the four verbatim supplied lines. Times are seconds from connection, after the three-second dialing phase. Each cue has id, speaker, text, startTime, endTime, audioSrc. The demo has no voice, translation, or speech synthesis. The three end tones are synthesized locally.
+`plot1-subtitles.js` contains the five verbatim supplied lines. Times are seconds from connection, after the three-second dialing phase. Each cue has id, speaker, text, startTime, endTime, audioSrc. The demo uses extracted source-video voice, with no translation or speech synthesis. The three end tones are synthesized locally.
 
 To add Thai recordings, set each audioSrc to a same-origin asset path. Each recording should contain just that cue. Audio currentTime then controls the cue clock; pause freezes it, ended advances to the next scheduled pause/cue. End stops audio and clears subtitles. Browsers may require a user gesture for audio after a refresh.
 
-The reference image guides call layout; the example text in that image and the uploaded video are not used as dialogue. Only the four explicitly supplied Techin sentences are shown. June 26 appears on follow-up chat timestamps; the phone remains on the supplied June 25 scene setting.
+The reference image guides call layout; the example text in that image does not override the supplied subtitle script. Only the five explicitly supplied Techin sentences are shown. June 26 appears on follow-up chat timestamps; the phone remains on the supplied June 25 scene setting.
 
-## Source-video audio trial
+## Current Techin voice track
 
-Two AAC/M4A excerpts from the supplied MOV are now connected through cue audioSrc: `techin-call-2.m4a` (source 2.9–5.1s) and `techin-call-3.m4a` (source 14.9–21.4s). These are an approximate original-video audio trial, not a word-for-word recording of the supplied script. The first and fourth supplied lines are absent from that video excerpt and remain subtitle-only. No dialogue was synthesized or translated. Replace the trial recordings with the final Thai voice takes for exact alignment. Original background sound is retained.
+All five subtitles use the user's latest exact text. Each audioSrc points to an AAC/M4A excerpt from the replacement MOV. Source spans (seconds): 1.2–2.9, 2.9–5.2, 9–11, 11–15.2, 15.2–19.888005. Original pauses are preserved in the subtitle schedule. The previous two partial-trial clips have been removed. No translation or generated speech is used. Original background sound remains in the recordings.
 
-The LINE list updates its latest-message preview, timestamp, unread count, and conversation ordering on every new story message, including outgoing messages and contact cards. Opening a conversation clears its unread count.
+Audio currentTime drives subtitle timing while a clip plays; pauses freeze subtitle progression. Hanging up or completing the call stops playback and clears subtitles. After the final recording ends, end tones and the existing automatic return to S unlock the follow-up.
+
+The LINE list updates latest-message previews, timestamps, unread counts, and conversation ordering for new story messages. Opening a conversation clears its unread count.
