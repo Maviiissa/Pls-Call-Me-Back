@@ -14,7 +14,14 @@ const css=el('link','');css.rel='stylesheet';css.href='plot1.css';document.head.
 const notification=el('button','plot-notification');notification.hidden=true;notification.setAttribute('aria-label','打开Thanwa的新LINE消息');phone.append(notification);
 const input=lineApp.querySelector('.line-compose-input');input.setAttribute('role','button');input.tabIndex=0;input.setAttribute('aria-label','填入预设回复');
 const oldSend=lineApp.querySelector('.line-send-icon');const send=el('button','line-icon plot-send','➤');send.setAttribute('aria-label','发送预设回复');oldSend.replaceWith(send);
-const typing=el('small','plot-typing','正在输入……');typing.hidden=true;document.querySelector('#line-chat-tools').append(typing);
+let lastIncomingAt=0;
+const lineContactNames={thanwa:'Thanwa',secretary:'S（秘书）',dad:'Dad',parn:'Parn'};
+function updateTyping(){
+ if(lineChat.hidden)return;
+ const next=s.queue[0],now=Date.now();
+ const writing=visible(currentLineContact)&&next?.contact===currentLineContact&&next.typing&&now>=next.due-1000&&now-lastIncomingAt>=300;
+ document.querySelector('#line-heading').textContent=writing?'正在输入....':lineContactNames[currentLineContact]||'Chats';
+}
 let draft='',draftContact='';
 const beforeContact=['我找秘书问Techin电话','我自己去问他'];
 const beforeContactSent=()=>s.messages.filter(m=>m.id.startsWith('player-before-contact-')).length;
@@ -38,7 +45,7 @@ function renderExtra(c){
  if(m.card){bubble.classList.add('plot-contact');bubble.append(el('strong','','Khun Techin'),el('div','','+66 33 222 1166'));const b=el('button','','拨打电话');b.disabled=s.callDone;b.onclick=startCall;bubble.append(b)}else bubble.textContent=m.text;
  const meta=el('div','line-meta',m.me?'Read':'20:35');if(m.me)row.append(meta,bubble);else row.append(bubble,meta);lineHistory.append(row)
  }
- typing.hidden=!(visible(c)&&s.queue[0]?.typing&&s.queue[0]?.contact===c);compose();
+ updateTyping();compose();
 }
 const originalRender=renderLineHistory;renderLineHistory=function(c){originalRender(c);renderExtra(c)};
 const originalOpen=openLineChat;openLineChat=function(c){originalOpen(c);if(s.unreadCounts)s.unreadCounts[c]=0;save();if(c==='thanwa'&&s.unread){s.unread=false;save()}updateNotification();compose()};
@@ -58,14 +65,14 @@ function updateChatList(){
  const order=[...contacts].filter(c=>s.messages.some(m=>m.contact===c)).sort((a,b)=>s.messages.findLastIndex(m=>m.contact===b)-s.messages.findLastIndex(m=>m.contact===a));
  for(const c of order.reverse()){const row=document.querySelector('#line-'+c),first=lineList.querySelector('.line-contact');if(row!==first)lineList.insertBefore(row,first)}
 }
-function updateNotification(){updateChatList();notification.hidden=!s.unread||visible('thanwa');notification.textContent='LINE · Thanwa\n'+(s.messages.filter(m=>m.contact==='thanwa'&&!m.me).at(-1)?.text||'新消息');document.querySelector('#line-thanwa').classList.toggle('plot-unread',s.unread)}
+function updateNotification(){updateTyping();updateChatList();notification.hidden=!s.unread||visible('thanwa');notification.textContent='LINE · Thanwa\n'+(s.messages.filter(m=>m.contact==='thanwa'&&!m.me).at(-1)?.text||'新消息');document.querySelector('#line-thanwa').classList.toggle('plot-unread',s.unread)}
 notification.onclick=()=>{if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id==='facebook')n.inert=true}openLine();openLineChat('thanwa')};
-function add(m){if(!s.messages.some(x=>x.id===m.id)){s.messages.push(m);if(!m.me&&!visible(m.contact)){s.unreadCounts=s.unreadCounts||{};s.unreadCounts[m.contact]=(s.unreadCounts[m.contact]||0)+1}}if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
-function schedule(contact,texts,delay,done,typing=false){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
+function add(m){if(!m.me)lastIncomingAt=Date.now();if(!s.messages.some(x=>x.id===m.id)){s.messages.push(m);if(!m.me&&!visible(m.contact)){s.unreadCounts=s.unreadCounts||{};s.unreadCounts[m.contact]=(s.unreadCounts[m.contact]||0)+1}}if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
+function schedule(contact,texts,delay,done,typing=true){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
  if(s.startedAt&&s.state==='plot1_exploration'&&Date.now()-s.startedAt>=EXPLORATION_DELAY_MS){state('plot1_thanwa_notification');schedule('thanwa',['？','Techin？','他不是Gay吗？'],0,'intro')}
  while(s.queue.length&&Date.now()>=s.queue[0].due){const m=s.queue.shift();add({...m,date:'2026年6月25日 20:35',card:m.text==='@contact'});if(m.done==='explanation')state('plot1_thanwa_replied');if(m.done==='contact')state('plot1_secretary_contact');if(!s.queue.length)compose()}
- typing.hidden=!(visible(currentLineContact)&&s.queue[0]?.contact===currentLineContact&&s.queue[0]?.typing&&Date.now()>=s.queue[0].due-1000);updateNotification();
+ updateNotification();
 }
 new MutationObserver(()=>{if(phone.classList.contains('unlocked')&&!s.startedAt){s.startedAt=Date.now();save()}}).observe(phone,{attributes:true,attributeFilter:['class']});
 const originalUnlock=unlock;unlock=function(){originalUnlock();if(!s.startedAt){s.startedAt=Date.now();save()}};

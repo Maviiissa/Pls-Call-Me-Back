@@ -25,3 +25,7 @@ The LINE list updates latest-message previews, timestamps, unread counts, and co
 ## Added Thanwa replies before contacting S
 
 After all four explanation messages finish, the typing indicator stops. The player sends `我找秘书问Techin电话`, then `我自己去问他` as two separate preset replies. Only after both are sent does S offer `把Techin的电话给我`. These replies are stored with unique message IDs; their sent count determines the next preset, without re-triggering Thanwa's explanation or changing the post-call follow-up counter.
+
+## LINE typing indicator
+
+All queued LINE story responses use the chat header as the typing indicator: the contact name becomes `正在输入....` shortly before the next message arrives. Each arrival restores the original name, with a short pause before the next typing period. Opening a different chat never displays another contact's typing status; the chat list header remains Chats. No separate typing text appears under the call icon.
