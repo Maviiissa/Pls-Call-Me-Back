@@ -32,8 +32,8 @@ function preset(){if(s.queue.length)return '';if(s.plot3)return plot3Preset();if
  if(s.state==='plot1_thanwa_replied')return beforeContact[beforeContactSent()]||'';
  if(['plot1_call_completed','plot1_thanwa_followup'].includes(s.state))return follow[s.step]||'';
  }if(currentLineContact==='secretary'&&s.state==='plot1_thanwa_replied'&&beforeContactSent()===beforeContact.length)return '把Techin的电话给我';return ''}
-function compose(){draft='';input.textContent=preset()?'点击输入回复':'Aa';send.disabled=true;}
-function fill(){draft=preset();draftContact=currentLineContact;if(draft){input.textContent=draft;send.disabled=false}}
+function compose(){draft='';input.textContent=s.plot3?.animation?animationText():((preset()||(s.plot3?.awaitMorning&&visible('parn')))?'点击输入回复':'Aa');send.disabled=true;}
+function fill(){if(s.plot3?.awaitMorning&&visible('parn')){p3().morningArmed=true;onPlot3ChatOpened('parn');return}draft=preset();draftContact=currentLineContact;if(draft){input.textContent=draft;send.disabled=false}}
 input.onclick=fill;input.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fill()}};
 function visible(c){return lineApp.classList.contains('open')&&!lineChat.hidden&&currentLineContact===c}
 function renderExtra(c){
@@ -51,15 +51,15 @@ function renderExtra(c){
  updateTyping();compose();
 }
 const originalRender=renderLineHistory;renderLineHistory=function(c){originalRender(c);renderExtra(c)};
-const originalOpen=openLineChat;openLineChat=function(c){originalOpen(c);if(s.unreadCounts)s.unreadCounts[c]=0;save();if(c==='thanwa'&&s.unread){s.unread=false;save()}updateNotification();compose()};
+const originalOpen=openLineChat;openLineChat=function(c){originalOpen(c);if(s.unreadCounts)s.unreadCounts[c]=0;save();if(c==='thanwa'&&s.unread){s.unread=false;save()}updateNotification();compose();onPlot3ChatOpened(c)};
 function updateChatList(){
  s.unreadCounts=s.unreadCounts||{};
- const contacts=['thanwa','secretary'];
+ const contacts=['thanwa','secretary','parn'];
  for(const c of contacts){
   const row=document.querySelector('#line-'+c),last=s.messages.filter(m=>m.contact===c).at(-1);
   if(!last)continue;
   row.querySelector('.line-contact-copy p').textContent=last.image?'[图片]':last.card?'[联系人] Khun Techin':last.text;
-  row.querySelector('time').textContent=last.date.includes('28日')?'15:34':last.date.includes('26日')?'26 Jun':'20:35';
+  row.querySelector('time').textContent=last.date.includes('29日')?'29 Jun':last.date.includes('28日')?last.date.split(' ').at(-1):last.date.includes('26日')?'26 Jun':'20:35';
   let badge=row.querySelector('.plot-unread-count');if(!badge){badge=el('span','plot-unread-count');row.append(badge)}
   const count=s.unreadCounts[c]||0;badge.textContent=String(count);badge.hidden=!count;
   row.setAttribute('aria-label',row.querySelector('strong').textContent+'，'+(last.image?'图片':last.card?'联系人卡片':last.text)+(count?'，'+count+'条未读':''));
@@ -68,8 +68,12 @@ function updateChatList(){
  const order=[...contacts].filter(c=>s.messages.some(m=>m.contact===c)).sort((a,b)=>s.messages.findLastIndex(m=>m.contact===b)-s.messages.findLastIndex(m=>m.contact===a));
  for(const c of order.reverse()){const row=document.querySelector('#line-'+c),first=lineList.querySelector('.line-contact');if(row!==first)lineList.insertBefore(row,first)}
 }
-function updateNotification(){updateTyping();updateChatList();notification.hidden=!s.unread||visible('thanwa');const latest=s.messages.filter(m=>m.contact==='thanwa'&&!m.me).at(-1);notification.textContent='LINE · Thanwa\n'+(latest?.image?'[图片]':latest?.text||'新消息');document.querySelector('#line-thanwa').classList.toggle('plot-unread',s.unread)}
-notification.onclick=()=>{const sms=document.querySelector('#messages-app');if(sms){sms.hidden=true;sms.inert=true}if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app','instagram-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id!=='photos-app')n.inert=true}openLine();openLineChat('thanwa')};
+function updateNotification(){updateTyping();updateChatList();
+ const latest=s.messages.filter(m=>!m.me&&(s.unreadCounts?.[m.contact]||0)>0).at(-1),contact=latest?.contact||'thanwa';
+ s.unread=!!latest;notification.dataset.contact=contact;notification.hidden=!latest||visible(contact);notification.setAttribute('aria-label','打开'+lineContactNames[contact]+'的新LINE消息');notification.textContent='LINE · '+lineContactNames[contact]+'\n'+(latest?.image?'[图片]':latest?.text||'新消息');
+ for(const c of ['thanwa','parn','secretary'])document.querySelector('#line-'+c).classList.toggle('plot-unread',(s.unreadCounts?.[c]||0)>0)
+}
+notification.onclick=()=>{const sms=document.querySelector('#messages-app');if(sms){sms.hidden=true;sms.inert=true}if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app','instagram-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id!=='photos-app')n.inert=true}openLine();openLineChat(notification.dataset.contact||'thanwa')};
 function add(m){if(!m.me)lastIncomingAt=Date.now();if(!s.messages.some(x=>x.id===m.id)){s.messages.push(m);if(!m.me&&!visible(m.contact)){s.unreadCounts=s.unreadCounts||{};s.unreadCounts[m.contact]=(s.unreadCounts[m.contact]||0)+1}}if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
 function schedule(contact,texts,delay,done,typing=true){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
@@ -102,34 +106,39 @@ const subtitle=call.querySelector('.plot-subtitle'),status=call.querySelector('.
 // One complete recording. The audio element is the sole subtitle clock.
 const voicePlayer=new Audio();voicePlayer.preload='auto';
 const retryAudio=el('button','plot-audio-retry','播放通话声音');retryAudio.hidden=true;call.querySelector('.plot-call-head').append(retryAudio);
+let callContact='techin';
 let callStart=0,callTimer,ending=false,activeId='',audioContext,voiceStarted=false,voiceEndedAt=null,prime=Promise.resolve(),resumeOffset=0;
 function clearCaption(){activeId='';subtitle.textContent='';subtitle.classList.remove('visible')}
 function clearAudio(){voicePlayer.pause();retryAudio.hidden=true;clearCaption()}
 function playVoice(){return voicePlayer.play().then(()=>{retryAudio.hidden=true}).catch(()=>{if(!ending&&!call.hidden)retryAudio.hidden=false})}
 retryAudio.onclick=()=>{audioContext?.resume();playVoice()};
 voicePlayer.onpause=()=>{clearCaption()};
-voicePlayer.onended=()=>{clearCaption();voiceEndedAt=performance.now();beep()};
-function startCall(resume=false){if(s.callDone||!call.hidden)return;call.hidden=false;lineApp.inert=true;ending=false;activeId='';voiceStarted=false;voiceEndedAt=null;retryAudio.hidden=true;
+voicePlayer.onended=()=>{clearCaption();voiceEndedAt=performance.now();if(callContact!=='parn')beep()};
+function startCall(resume=false,contact='techin'){resume=resume===true;if((contact==='parn'?s.plot3_parn_call_completed:s.callDone)||!call.hidden)return;callContact=contact;call.classList.remove('plot-call-dim');call.setAttribute('aria-label','与'+(contact==='parn'?'Parn':'Techin')+'的模拟通话');call.querySelector('h1').textContent=contact==='parn'?'Parn':'+66 33 222 1166';call.hidden=false;lineApp.inert=true;ending=false;activeId='';voiceStarted=false;voiceEndedAt=null;retryAudio.hidden=true;
  try{audioContext=new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch{};call.querySelector('.end').focus();
- voicePlayer.src=window.PLOT1_CALL_AUDIO;voicePlayer.volume=0;
+ voicePlayer.src=callContact==='parn'?window.PLOT3_PARN_CALL.audioSrc:window.PLOT1_CALL_AUDIO;voicePlayer.volume=0;
  // Unlock this same media element during the contact-button gesture on iOS.
  prime=voicePlayer.play().then(()=>{voicePlayer.pause();voicePlayer.currentTime=0;voicePlayer.volume=1}).catch(()=>{voicePlayer.volume=1});
- if(!resume){s.callElapsed=0;state('plot1_calling')}
- resumeOffset=Math.max(0,s.callElapsed-3);callStart=performance.now()-Math.min(s.callElapsed,3)*1000;callTimer=setInterval(tickCall,33);tickCall()
+ if(!resume){if(callContact==='parn'){p3().callElapsed=0;mark3('plot3_parn_calling')}else{s.callElapsed=0;state('plot1_calling')}}
+ const elapsed=callContact==='parn'?(p3().callElapsed||0):s.callElapsed;resumeOffset=Math.max(0,elapsed-3);callStart=performance.now()-Math.min(elapsed,3)*1000;callTimer=setInterval(tickCall,33);tickCall()
 }
 function beep(){if(!audioContext)return;for(let i=0;i<3;i++){const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=480;g.gain.value=.04;o.connect(g);g.connect(audioContext.destination);const t=audioContext.currentTime+i*.45;o.start(t);o.stop(t+.22)}}
 function tickCall(){if(ending)return;
- if((performance.now()-callStart)/1000<3){s.callElapsed=(performance.now()-callStart)/1000;save();status.textContent='Calling…';return}
- if(!voiceStarted){voiceStarted=true;state('plot1_in_call');prime.then(()=>{if(ending||call.hidden)return;voicePlayer.currentTime=resumeOffset;playVoice()})}
- call.querySelector('h1').textContent='Techin';call.querySelector('p').textContent='mobile · Thailand';
- const time=voicePlayer.currentTime,sec=Math.floor(time);s.callElapsed=3+time;save();status.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
- if(voiceEndedAt!==null){if(performance.now()-voiceEndedAt>=2300)endCall(true);return}
+ if((performance.now()-callStart)/1000<3){if(callContact==='parn')p3().callElapsed=(performance.now()-callStart)/1000;else s.callElapsed=(performance.now()-callStart)/1000;save();status.textContent='Calling…';return}
+ if(!voiceStarted){voiceStarted=true;if(callContact==='parn')mark3('plot3_parn_in_call');else state('plot1_in_call');prime.then(()=>{if(ending||call.hidden)return;voicePlayer.currentTime=resumeOffset;playVoice()})}
+ call.querySelector('h1').textContent=callContact==='parn'?'Parn':'Techin';call.querySelector('p').textContent='mobile · Thailand';
+ const time=voicePlayer.currentTime,sec=Math.floor(time+(callContact==='parn'&&voiceEndedAt!==null?(performance.now()-voiceEndedAt)/1000:0));if(callContact==='parn')p3().callElapsed=3+time;else s.callElapsed=3+time;save();status.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+ if(voiceEndedAt!==null){if(performance.now()-voiceEndedAt>=(callContact==='parn'?window.PLOT3_PARN_CALL.quietAfterAudio*1000:2300))endCall(true);return}
  if(voicePlayer.paused){clearCaption();return}
- const cue=window.PLOT1_SUBTITLES.find(c=>time>=c.startTime&&time<c.endTime);
- if((cue?.id||'')!==activeId){clearCaption();if(cue){activeId=cue.id;subtitle.textContent=cue.text;subtitle.classList.add('visible')}}
+ if(callContact==='parn'&&time>=window.PLOT3_PARN_CALL.dimAt)call.classList.add('plot-call-dim');
+ const cue=(callContact==='parn'?window.PLOT3_PARN_CALL.subtitles:window.PLOT1_SUBTITLES).find(c=>time>=c.startTime&&time<c.endTime);
+ if((cue?.id||'')!==activeId){clearCaption();if(cue){activeId=cue.id;subtitle.textContent=callContact==='parn'?cue.speaker+'：'+cue.text:cue.text;subtitle.classList.add('visible')}}
 }
-function endCall(complete){if(ending)return;ending=true;clearInterval(callTimer);clearAudio();audioContext?.close();status.textContent='Call Ended';if(complete){s.callDone=true;state('plot1_call_completed')}else{s.callElapsed=0;state('plot1_secretary_contact')}
- setTimeout(()=>{call.hidden=true;lineApp.inert=false;openLine();openLineChat('secretary');call.querySelector('h1').textContent='+66 33 222 1166';call.querySelector('p').textContent='Thailand';},1000)}
+function endCall(complete){if(ending)return;ending=true;const parn=callContact==='parn';clearInterval(callTimer);clearAudio();audioContext?.close();status.textContent='Call Ended';
+ if(parn){if(complete){s.plot3_parn_call_completed=true;p3().parnCallCompleted=true;p3().parnCallReady=false;p3().awaitMorning=true;p3().morningArmed=false;mark3('plot3_parn_call_completed')}else{p3().callElapsed=0;mark3('plot3_parn_call_unlocked')}}
+ else if(complete){s.callDone=true;state('plot1_call_completed')}else{s.callElapsed=0;state('plot1_secretary_contact')}
+ setTimeout(()=>{call.hidden=true;call.classList.remove('plot-call-dim');lineApp.inert=false;openLine();returningParnCall=parn;openLineChat(parn?'parn':'secretary');returningParnCall=false;call.querySelector('h1').textContent='+66 33 222 1166';call.querySelector('p').textContent='Thailand';},1000)
+}
 // Plot 2 shares this story save, LINE queue, and existing Facebook/Messenger UI.
 const data2=window.PLOT2_DATA;
 const p2=()=>s.plot2;
@@ -221,37 +230,94 @@ window.addEventListener('keydown',e=>{if(!messagesApp.hidden&&e.key==='Escape'){
 // Plot 3 is a turn-based extension of the existing shared LINE queue/save.
 const p3=()=>s.plot3;
 function mark3(node){if(!p3().nodes.includes(node))p3().nodes.push(node);state(node)}
-function applyPlot3Date(){
+function applyPlot3Date(day=28,time='15:34'){
+ if(day!==28||time!=='15:34'){const weekday=day===29?'Monday':'Sunday';p3().currentDate='2026年6月'+day+'日 '+time;document.querySelector('.date').textContent=weekday+', '+day+' June 2026';document.querySelector('.time').textContent=time;document.querySelector('.day').textContent=weekday.toUpperCase();document.querySelector('.daynum').textContent=String(day);lock.setAttribute('aria-label','锁屏，'+p3().currentDate+'。向上滑动解锁');document.querySelector('.calendar').setAttribute('aria-label',p3().currentDate);for(const n of document.querySelectorAll('.status>span:first-child,.photos-status>span:first-child,.sms-status>span:first-child'))if(n.textContent!=='Wi-Fi Call')n.textContent=time;save();return}
+
  document.querySelector('.date').textContent='Sunday, 28 June 2026';document.querySelector('.time').textContent='15:34';document.querySelector('.day').textContent='SUNDAY';document.querySelector('.daynum').textContent='28';
  lock.setAttribute('aria-label','锁屏，2026年6月28日，15:34。向上滑动解锁');document.querySelector('.calendar').setAttribute('aria-label','2026年6月28日 星期日。Meeting 上午9:45。明天 Annual Meet 10:30');
  for(const n of document.querySelectorAll('.status>span:first-child,.photos-status>span:first-child,.sms-status>span:first-child'))if(n.textContent!=='Wi-Fi Call')n.textContent='15:34'
 }
-function plot3Turn(){return p3()&&window.PLOT3_DATA['scene'+p3().scene]?.[p3().event]}
-function plot3Preset(){const turn=plot3Turn();return currentLineContact==='thanwa'&&turn?.from==='me'?(turn.messages[p3().playerIndex]||''):''}
+function plot3Turn(){return p3()&&(p3().segment?window.PLOT3_BRANCHES[p3().segment]:window.PLOT3_DATA['scene'+p3().scene])?.[p3().event]}
+function plot3Preset(){const turn=plot3Turn();return !p3()?.animation&&currentLineContact===plot3Contact()&&turn?.from==='me'?(turn.messages[p3().playerIndex]||''):''}
 function begin3(){s.plot3={scene:1,event:0,playerIndex:0,scene1Completed:false,postPublished:false,parnUnlocked:false,nodes:[]};mark3('plot3_started');applyPlot3Date();enterPlot3Turn()}
 function enterPlot3Turn(){
- const turn=plot3Turn();if(!turn){
-  if(p3().scene===1){p3().scene1Completed=true;mark3('plot3_scene1_completed')}
-  else{p3().parnUnlocked=true;mark3('plot3_parn_unlocked')}
-  compose();return
- }
- if(turn.from==='thanwa'){
-  const now=Date.now(),id='plot3-s'+p3().scene+'-e'+p3().event;
-  s.queue=turn.messages.map((item,i)=>({id:id+'-'+i,contact:'thanwa',...(typeof item==='string'?{text:item}:item),date:window.PLOT3_DATA.date,due:now+3000+i*1000,typing:true,typingAt:now,done:i===turn.messages.length-1?'plot3-turn':null}));save()
+ const turn=plot3Turn();if(!turn){finishPlot3Segment();return}
+ if(turn.from!=='me'){
+  const now=Date.now(),id=p3().segment?'plot3-'+p3().segment+'-e'+p3().event:'plot3-s'+p3().scene+'-e'+p3().event;
+  s.queue=turn.messages.map((item,i)=>({id:id+'-'+i,contact:turn.from,...(typeof item==='string'?{text:item}:item),date:plot3Date(),due:now+3000+i*1000,typing:true,typingAt:now,done:i===turn.messages.length-1?'plot3-turn':null}));save()
  }compose()
 }
-function finishPlot3Turn(){p3().event++;p3().playerIndex=0;save();enterPlot3Turn()}
+function finishPlot3Turn(){if(!p3().segment&&p3().scene===1&&p3().event===0)mark3('plot3_cakes_delivered');p3().event++;p3().playerIndex=0;save();enterPlot3Turn()}
 function sendPlot3(text){
  const step=p3().playerIndex,turn=plot3Turn();
- add({id:'plot3-player-s'+p3().scene+'-e'+p3().event+'-'+step,contact:'thanwa',text,me:true,date:window.PLOT3_DATA.date});
- p3().playerIndex++;save();if(p3().playerIndex===turn.messages.length)finishPlot3Turn();else compose()
+ add({id:p3().segment?'plot3-player-'+p3().segment+'-e'+p3().event+'-'+step:'plot3-player-s'+p3().scene+'-e'+p3().event+'-'+step,contact:plot3Contact(),text,me:true,date:plot3Date()});
+ p3().playerIndex++;save();if(p3().playerIndex===turn.messages.length)finishPlot3Turn();else{compose();if(p3().segment==='scarf'&&p3().event===0)fill()}
 }
 function publishPlot3Post(){
  if(!p3()?.scene1Completed||p3().postPublished||!window.PheemInstagram)return;
  window.PheemInstagram.addPost(window.PLOT3_DATA.post);p3().postPublished=true;p3().scene=2;p3().event=0;p3().playerIndex=0;mark3('plot3_instagram_posted');enterPlot3Turn()
 }
 window.addEventListener('instagram:opened',publishPlot3Post);
-function processPlot3(){if(s.state==='plot2_completed'&&!p3())begin3()}
+function processPlot3(){if(s.state==='plot2_completed'&&!p3())begin3();if(p3()){tickDraftAnimation();showBranchUI();if(p3().awaitMorning&&!visible('parn')){p3().morningArmed=true;if(!lineApp.classList.contains('open')&&p3().currentDate!=='2026年6月29日 10:42')applyPlot3Date(29,'10:42')}}}
+
+// Small inline choices and draft-only animations; all use the existing story save.
+const branchChoices=el('div','plot3-choices');branchChoices.hidden=true;branchChoices.setAttribute('aria-label','选择给Parn的开场白');lineChat.insertBefore(branchChoices,lineApp.querySelector('.line-compose'));
+for(const choice of window.PLOT3_BRANCHES.choices){const b=el('button','',choice.text);b.dataset.branch=choice.id;b.onclick=()=>selectPlot3Branch(choice.id);branchChoices.append(b)}
+const tools=document.querySelector('#line-chat-tools');tools.removeAttribute('aria-hidden');const parnCallButton=el('button','line-icon plot3-call-button');parnCallButton.innerHTML=tools.innerHTML;parnCallButton.setAttribute('aria-label','拨打Parn电话');tools.replaceChildren(parnCallButton);parnCallButton.disabled=true;parnCallButton.onclick=()=>{if(p3()?.parnCallReady&&!s.plot3_parn_call_completed)startCall(false,'parn')};
+let returningParnCall=false;
+new MutationObserver(()=>{if(visible('parn'))onPlot3ChatOpened('parn')}).observe(lineApp,{attributes:true,attributeFilter:['class']});
+function plot3Contact(){return p3()?.segment&&p3().segment!=='final'?'parn':'thanwa'}
+function plot3Date(){return p3()?.currentDate||window.PLOT3_DATA.date}
+function showBranchUI(){
+ branchChoices.hidden=!(visible('parn')&&p3()?.introCompleted&&!s.plot3_branch&&!p3()?.animation);
+ parnCallButton.disabled=!(visible('parn')&&p3()?.parnCallReady&&!s.plot3_parn_call_completed);
+ parnCallButton.setAttribute('aria-label',parnCallButton.disabled?'通话':'拨打Parn电话');
+}
+function animateDrafts(kind,lines,hold=2000,lead=0){
+ if(p3().animation)return;const frames=[{text:'',duration:lead}];
+ for(let j=0;j<lines.length;j++){const chars=Array.from(lines[j]);for(let i=1;i<=chars.length;i++)frames.push({text:chars.slice(0,i).join(''),duration:65});frames.push({text:lines[j],duration:Array.isArray(hold)?hold[j]:hold});for(let i=chars.length-1;i>=0;i--)frames.push({text:chars.slice(0,i).join(''),duration:55});if(j<lines.length-1)frames.push({text:'',duration:1000})}
+ frames.push({text:'',duration:0});p3().animation={kind,frames,index:0,nextAt:Date.now()+lead,pausedAt:null};save();draft='';input.textContent='';send.disabled=true;showBranchUI()
+}
+function animationText(){const a=p3()?.animation;return a?.frames[Math.min(a.index,a.frames.length-1)]?.text||''}
+function tickDraftAnimation(){
+ const a=p3()?.animation;if(!a)return;
+ if(!visible('parn')||!call.hidden){if(a.pausedAt===null)a.pausedAt=Date.now();return}
+ if(a.pausedAt!==null){a.nextAt+=Date.now()-a.pausedAt;a.pausedAt=null}
+ while(a.index<a.frames.length-1&&Date.now()>=a.nextAt){a.index++;a.nextAt+=a.frames[a.index].duration}
+ draft='';input.textContent=animationText();send.disabled=true;
+ if(a.index===a.frames.length-1&&Date.now()>=a.nextAt){const kind=a.kind;p3().animation=null;input.textContent='';
+ if(kind==='intro'){p3().introCompleted=true;mark3('plot3_parn_intro_animation_completed')}
+ else if(kind==='morning'){p3().awaitMorning=false;applyPlot3Date(29,'10:42');p3().segment='morning';p3().event=0;p3().playerIndex=0;enterPlot3Turn()}
+ else finishPlot3Branch();
+ save();compose();showBranchUI()
+ }else save()
+}
+function onPlot3ChatOpened(contact){
+ if(!p3())return;showBranchUI();if(contact!=='parn'||!p3().parnUnlocked)return;
+ if(!p3().introCompleted&&!p3().animation)animateDrafts('intro',window.PLOT3_BRANCHES.intro,1500,2000);
+ else if(p3().awaitMorning&&p3().morningArmed&&!returningParnCall&&!p3().animation)animateDrafts('morning',window.PLOT3_BRANCHES.morningDrafts,[1500,1500,2000]);
+ if(p3().animation){input.textContent=animationText();send.disabled=true}
+}
+function selectPlot3Branch(branch){
+ if(!p3()?.introCompleted||s.plot3_branch||p3().animation||!visible('parn'))return;
+ s.plot3_branch=branch;p3().branch=branch;p3().segment=branch;p3().event=0;p3().playerIndex=0;s.plot3_parn_call_completed=false;mark3('plot3_branch_selected');
+ if(branch==='miss_you')applyPlot3Date(28,'23:18');enterPlot3Turn();showBranchUI();
+ if(branch!=='miss_you')fill()
+}
+function finishPlot3Branch(){
+ p3().branchCompleted=true;mark3('plot3_branch_completed');p3().segment='final';p3().event=0;p3().playerIndex=0;enterPlot3Turn();showBranchUI()
+}
+function finishPlot3Segment(){
+ if(!p3().segment){
+ if(p3().scene===1){p3().scene1Completed=true;mark3('plot3_scene1_completed');mark3('plot3_thanwa_conversation_completed')}
+ else{p3().parnUnlocked=true;mark3('plot3_instagram_reaction_completed');mark3('plot3_parn_unlocked');mark3('plot3_parn_chat_unlocked')}
+ }else if(p3().segment==='scarf')animateDrafts('scarf-outro',window.PLOT3_BRANCHES.scarfDrafts);
+ else if(p3().segment==='cake')animateDrafts('cake-outro',window.PLOT3_BRANCHES.cakeDrafts);
+ else if(p3().segment==='miss_you'){p3().parnCallReady=true;mark3('plot3_parn_call_unlocked');showBranchUI()}
+ else if(p3().segment==='morning')finishPlot3Branch();
+ else if(p3().segment==='final'){p3().completed=true;mark3('plot3_final_thanwa_completed');mark3('plot3_completed')}
+ compose()
+}
 
 window.addEventListener('keydown',e=>{if(!call.hidden&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation()}},true);
 window.addEventListener('pagehide',()=>{save();clearAudio()});
