@@ -81,21 +81,34 @@ call.innerHTML='<div class="plot-call-head"><div class="plot-call-status">Callin
 const icons={Speaker:'<path d="M3 9h4l5-5v16l-5-5H3zM16 8q5 4 0 8M19 4q9 8 0 16"/>',FaceTime:'<rect x="2" y="6" width="13" height="13" rx="3"/><path d="m15 10 7-4v13l-7-4"/>',Mute:'<rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v3a7 7 0 0 0 14 0M12 20v3M2 2l20 20"/>',More:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',End:'<path d="M3 14q9-9 18 0l-2 4-5-2v-3h-4v3l-5 2z"/>',Keypad:'<rect x="4" y="3" width="16" height="19" rx="2"/><path d="M4 9h16M4 15h16M10 3v19M15 3v19"/>'};
 for(const name of Object.keys(icons)){const b=el('button','plot-control '+(name==='End'?'end':''));b.innerHTML='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">'+icons[name]+'</svg></span>'+name;b.setAttribute('aria-label',name);if(name==='End')b.onclick=()=>endCall(false);else if(['Speaker','Mute'].includes(name)){b.setAttribute('aria-pressed','false');b.onclick=()=>b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true'))}else b.disabled=true;call.querySelector('.plot-controls').append(b)}
 const subtitle=call.querySelector('.plot-subtitle'),status=call.querySelector('.plot-call-status');
+// One complete recording. The audio element is the sole subtitle clock.
 const voicePlayer=new Audio();voicePlayer.preload='auto';
-let callStart=0,callTimer,ending=false,audio=null,activeId='',beeped=false,audioContext;
-function clearAudio(){if(audio){audio.pause();audio.src='';audio=null}subtitle.textContent='';subtitle.classList.remove('visible')}
-function startCall(resume=false){if(s.callDone||!call.hidden)return;call.hidden=false;lineApp.inert=true;ending=false;activeId='';beeped=false;try{audioContext=new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch{};call.querySelector('.end').focus();
- // Prime one reusable media element during the phone-button gesture (mobile Safari).
- const firstVoice=window.PLOT1_SUBTITLES.find(c=>c.audioSrc);if(firstVoice){voicePlayer.src=firstVoice.audioSrc;voicePlayer.volume=0;voicePlayer.play().then(()=>{voicePlayer.pause();voicePlayer.currentTime=0;voicePlayer.volume=1}).catch(()=>{voicePlayer.volume=1})}
- if(!resume){s.callElapsed=0;state('plot1_calling')}callStart=performance.now()-s.callElapsed*1000;callTimer=setInterval(tickCall,100);tickCall()}
+const retryAudio=el('button','plot-audio-retry','播放通话声音');retryAudio.hidden=true;call.querySelector('.plot-call-head').append(retryAudio);
+let callStart=0,callTimer,ending=false,activeId='',audioContext,voiceStarted=false,voiceEndedAt=null,prime=Promise.resolve(),resumeOffset=0;
+function clearCaption(){activeId='';subtitle.textContent='';subtitle.classList.remove('visible')}
+function clearAudio(){voicePlayer.pause();retryAudio.hidden=true;clearCaption()}
+function playVoice(){return voicePlayer.play().then(()=>{retryAudio.hidden=true}).catch(()=>{if(!ending&&!call.hidden)retryAudio.hidden=false})}
+retryAudio.onclick=()=>{audioContext?.resume();playVoice()};
+voicePlayer.onpause=()=>{clearCaption()};
+voicePlayer.onended=()=>{clearCaption();voiceEndedAt=performance.now();beep()};
+function startCall(resume=false){if(s.callDone||!call.hidden)return;call.hidden=false;lineApp.inert=true;ending=false;activeId='';voiceStarted=false;voiceEndedAt=null;retryAudio.hidden=true;
+ try{audioContext=new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch{};call.querySelector('.end').focus();
+ voicePlayer.src=window.PLOT1_CALL_AUDIO;voicePlayer.volume=0;
+ // Unlock this same media element during the contact-button gesture on iOS.
+ prime=voicePlayer.play().then(()=>{voicePlayer.pause();voicePlayer.currentTime=0;voicePlayer.volume=1}).catch(()=>{voicePlayer.volume=1});
+ if(!resume){s.callElapsed=0;state('plot1_calling')}
+ resumeOffset=Math.max(0,s.callElapsed-3);callStart=performance.now()-Math.min(s.callElapsed,3)*1000;callTimer=setInterval(tickCall,33);tickCall()
+}
 function beep(){if(!audioContext)return;for(let i=0;i<3;i++){const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=480;g.gain.value=.04;o.connect(g);g.connect(audioContext.destination);const t=audioContext.currentTime+i*.45;o.start(t);o.stop(t+.22)}}
-function tickCall(){if(ending)return;let t=(performance.now()-callStart)/1000;s.callElapsed=t;save();if(t<3){status.textContent='Calling…';return}if(s.state!=='plot1_in_call')state('plot1_in_call');call.querySelector('h1').textContent='Techin';call.querySelector('p').textContent='mobile · Thailand';const sec=Math.floor(t-3);status.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
- if(audio){const current=window.PLOT1_SUBTITLES.find(c=>c.id===activeId);callStart=performance.now()-(3+current.startTime+audio.currentTime)*1000;return}
- const cue=window.PLOT1_SUBTITLES.find(c=>t-3>=c.startTime&&t-3<c.endTime);
- if(cue?.id!==activeId){clearAudio();activeId=cue?.id;if(cue){subtitle.textContent=cue.text;requestAnimationFrame(()=>subtitle.classList.add('visible'));if(cue.audioSrc){audio=voicePlayer;audio.src=cue.audioSrc;audio.volume=1;audio.onpause=()=>subtitle.classList.remove('visible');audio.onplaying=()=>subtitle.classList.add('visible');audio.onended=()=>{callStart=performance.now()-(3+cue.endTime)*1000;clearAudio()};audio.play().catch(()=>{subtitle.classList.remove('visible')})}}}
- // An imported recording owns its cue's playback clock, including pause and duration.
- if(audio&&cue){callStart=performance.now()-(3+cue.startTime+audio.currentTime)*1000;return}
- const end=Math.max(...window.PLOT1_SUBTITLES.map(c=>c.endTime));if(t-3>=end+.5&&!beeped){beeped=true;beep()}if(t-3>=end+2.9)endCall(true)
+function tickCall(){if(ending)return;
+ if((performance.now()-callStart)/1000<3){s.callElapsed=(performance.now()-callStart)/1000;save();status.textContent='Calling…';return}
+ if(!voiceStarted){voiceStarted=true;state('plot1_in_call');prime.then(()=>{if(ending||call.hidden)return;voicePlayer.currentTime=resumeOffset;playVoice()})}
+ call.querySelector('h1').textContent='Techin';call.querySelector('p').textContent='mobile · Thailand';
+ const time=voicePlayer.currentTime,sec=Math.floor(time);s.callElapsed=3+time;save();status.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+ if(voiceEndedAt!==null){if(performance.now()-voiceEndedAt>=2300)endCall(true);return}
+ if(voicePlayer.paused){clearCaption();return}
+ const cue=window.PLOT1_SUBTITLES.find(c=>time>=c.startTime&&time<c.endTime);
+ if((cue?.id||'')!==activeId){clearCaption();if(cue){activeId=cue.id;subtitle.textContent=cue.text;subtitle.classList.add('visible')}}
 }
 function endCall(complete){if(ending)return;ending=true;clearInterval(callTimer);clearAudio();audioContext?.close();status.textContent='Call Ended';if(complete){s.callDone=true;state('plot1_call_completed')}else{s.callElapsed=0;state('plot1_secretary_contact')}
  setTimeout(()=>{call.hidden=true;lineApp.inert=false;openLine();openLineChat('secretary');call.querySelector('h1').textContent='+66 33 222 1166';call.querySelector('p').textContent='Thailand';},1000)}

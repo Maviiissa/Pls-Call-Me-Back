@@ -8,16 +8,16 @@ Open index.html through an HTTP server. The first unlock starts a single 20-seco
 
 When TEST_MODE is false, progress and added messages persist in browser localStorage under `pheem.plot1.v1`. Refresh resumes deadlines and queued messages without duplication. Clearing browser site data removes the save. A call interrupted by refresh resumes at its saved elapsed time. Early End returns to S and allows retry; only a completed call unlocks the follow-up. Completed calls cannot be replayed.
 
-`plot1-subtitles.js` contains the five verbatim supplied lines. Times are seconds from connection, after the three-second dialing phase. Each cue has id, speaker, text, startTime, endTime, audioSrc. The demo uses extracted source-video voice, with no translation or speech synthesis. The three end tones are synthesized locally.
+`plot1-subtitles.js` contains the six verbatim supplied lines. Times are seconds from connection, after the three-second dialing phase. Each cue has id, speaker, text, startTime, endTime, audioSrc. The demo uses extracted source-video voice, with no translation or speech synthesis. The three end tones are synthesized locally.
 
-To add Thai recordings, set each audioSrc to a same-origin asset path. Each recording should contain just that cue. Audio currentTime then controls the cue clock; pause freezes it, ended advances to the next scheduled pause/cue. End stops audio and clears subtitles. Browsers may require a user gesture for audio after a refresh.
+The complete recording is configured with PLOT1_CALL_AUDIO in plot1-subtitles.js. Every cue's audioSrc references that same recording; it is loaded and played once, not once per cue. Subtitle start/end times are measured from the recording's start (excluding the three-second dialing phase). Audio currentTime controls both call duration display and subtitles. Pausing hides the current subtitle and freezes progression; resuming restores the appropriate cue. End stops the audio and clears the subtitle. If autoplay is blocked, tap the visible audio play button.
 
-The reference image guides call layout; the example text in that image does not override the supplied subtitle script. Only the five explicitly supplied Techin sentences are shown. June 26 appears on follow-up chat timestamps; the phone remains on the supplied June 25 scene setting.
+The reference image guides call layout; the example text in that image does not override the supplied subtitle script. Only the six explicitly supplied Techin subtitle lines are shown. June 26 appears on follow-up chat timestamps; the phone remains on the supplied June 25 scene setting.
 
 ## Current Techin voice track
 
-All five subtitles use the user's latest exact text. Each audioSrc points to an AAC/M4A excerpt from the replacement MOV. Source spans (seconds): 1.2–2.9, 2.9–5.2, 9–11, 11–15.2, 15.2–19.888005. Original pauses are preserved in the subtitle schedule. The previous two partial-trial clips have been removed. No translation or generated speech is used. Original background sound remains in the recordings.
+The replacement MOV's complete audio is stored in assets/techin-call-full.m4a (about 19.888 seconds). The earlier separate clips were removed. The six exact user-provided ranges are 1.2–2.8, 4.3–5.3, 9.3–10.8, 12.0–12.2, 15.6–18.0, and 18.9–20.0 seconds. The final cue stops when the recording actually ends, slightly before its nominal 20.0-second end. No audio is invented or stretched. Original pauses and background sound remain intact.
 
-Audio currentTime drives subtitle timing while a clip plays; pauses freeze subtitle progression. Hanging up or completing the call stops playback and clears subtitles. After the final recording ends, end tones and the existing automatic return to S unlock the follow-up.
+The recording's ended event clears subtitles and starts three end tones. After the tones plus a one-second pause, Call Ended is displayed for one second, then the game returns to S and unlocks the follow-up.
 
 The LINE list updates latest-message previews, timestamps, unread counts, and conversation ordering for new story messages. Opening a conversation clears its unread count.
