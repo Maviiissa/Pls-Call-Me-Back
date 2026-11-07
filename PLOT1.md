@@ -13,3 +13,9 @@ Progress and added messages persist in browser localStorage under `pheem.plot1.v
 To add Thai recordings, set each audioSrc to a same-origin asset path. Each recording should contain just that cue. Audio currentTime then controls the cue clock; pause freezes it, ended advances to the next scheduled pause/cue. End stops audio and clears subtitles. Browsers may require a user gesture for audio after a refresh.
 
 The reference image guides call layout; the example text in that image and the uploaded video are not used as dialogue. Only the four explicitly supplied Techin sentences are shown. June 26 appears on follow-up chat timestamps; the phone remains on the supplied June 25 scene setting.
+
+## Source-video audio trial
+
+Two AAC/M4A excerpts from the supplied MOV are now connected through cue audioSrc: `techin-call-2.m4a` (source 2.9–5.1s) and `techin-call-3.m4a` (source 14.9–21.4s). These are an approximate original-video audio trial, not a word-for-word recording of the supplied script. The first and fourth supplied lines are absent from that video excerpt and remain subtitle-only. No dialogue was synthesized or translated. Replace the trial recordings with the final Thai voice takes for exact alignment. Original background sound is retained.
+
+The LINE list updates its latest-message preview, timestamp, unread count, and conversation ordering on every new story message, including outgoing messages and contact cards. Opening a conversation clears its unread count.

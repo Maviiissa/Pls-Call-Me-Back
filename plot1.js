@@ -38,10 +38,26 @@ function renderExtra(c){
  typing.hidden=!(visible(c)&&s.queue[0]?.typing&&s.queue[0]?.contact===c);compose();
 }
 const originalRender=renderLineHistory;renderLineHistory=function(c){originalRender(c);renderExtra(c)};
-const originalOpen=openLineChat;openLineChat=function(c){originalOpen(c);if(c==='thanwa'&&s.unread){s.unread=false;save()}updateNotification();compose()};
-function updateNotification(){notification.hidden=!s.unread||visible('thanwa');notification.textContent='LINE · Thanwa\n'+(s.messages.filter(m=>m.contact==='thanwa'&&!m.me).at(-1)?.text||'新消息');document.querySelector('#line-thanwa').classList.toggle('plot-unread',s.unread)}
+const originalOpen=openLineChat;openLineChat=function(c){originalOpen(c);if(s.unreadCounts)s.unreadCounts[c]=0;save();if(c==='thanwa'&&s.unread){s.unread=false;save()}updateNotification();compose()};
+function updateChatList(){
+ s.unreadCounts=s.unreadCounts||{};
+ const contacts=['thanwa','secretary'];
+ for(const c of contacts){
+  const row=document.querySelector('#line-'+c),last=s.messages.filter(m=>m.contact===c).at(-1);
+  if(!last)continue;
+  row.querySelector('.line-contact-copy p').textContent=last.card?'[联系人] Khun Techin':last.text;
+  row.querySelector('time').textContent=last.date.includes('26日')?'26 Jun':'20:35';
+  let badge=row.querySelector('.plot-unread-count');if(!badge){badge=el('span','plot-unread-count');row.append(badge)}
+  const count=s.unreadCounts[c]||0;badge.textContent=String(count);badge.hidden=!count;
+  row.setAttribute('aria-label',row.querySelector('strong').textContent+'，'+(last.card?'联系人卡片':last.text)+(count?'，'+count+'条未读':''));
+ }
+ // Move the most recently active conversations above the unchanged historical rows.
+ const order=[...contacts].filter(c=>s.messages.some(m=>m.contact===c)).sort((a,b)=>s.messages.findLastIndex(m=>m.contact===b)-s.messages.findLastIndex(m=>m.contact===a));
+ for(const c of order.reverse()){const row=document.querySelector('#line-'+c),first=lineList.querySelector('.line-contact');if(row!==first)lineList.insertBefore(row,first)}
+}
+function updateNotification(){updateChatList();notification.hidden=!s.unread||visible('thanwa');notification.textContent='LINE · Thanwa\n'+(s.messages.filter(m=>m.contact==='thanwa'&&!m.me).at(-1)?.text||'新消息');document.querySelector('#line-thanwa').classList.toggle('plot-unread',s.unread)}
 notification.onclick=()=>{if(!phone.classList.contains('unlocked'))unlock();for(const id of ['facebook','photos-app']){const n=document.getElementById(id);n?.classList.remove('open');if(n&&id==='facebook')n.inert=true}openLine();openLineChat('thanwa')};
-function add(m){if(!s.messages.some(x=>x.id===m.id))s.messages.push(m);if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
+function add(m){if(!s.messages.some(x=>x.id===m.id)){s.messages.push(m);if(!m.me&&!visible(m.contact)){s.unreadCounts=s.unreadCounts||{};s.unreadCounts[m.contact]=(s.unreadCounts[m.contact]||0)+1}}if(m.contact==='thanwa'&&!m.me&&!visible('thanwa'))s.unread=true;save();if(visible(m.contact)){renderLineHistory(m.contact);lineHistory.scrollTop=lineHistory.scrollHeight}updateNotification()}
 function schedule(contact,texts,delay,done,typing=false){const base=Date.now()+delay;s.queue=texts.map((text,i)=>({id:done+'-'+i,contact,text,due:base+i*1000,typing,done:i===texts.length-1?done:null}));save();compose()}
 function process(){
  if(s.startedAt&&s.state==='plot1_exploration'&&Date.now()-s.startedAt>=EXPLORATION_DELAY_MS){state('plot1_thanwa_notification');schedule('thanwa',['？','Techin？','他不是Gay吗？'],0,'intro')}
@@ -65,15 +81,18 @@ call.innerHTML='<div class="plot-call-head"><div class="plot-call-status">Callin
 const icons={Speaker:'<path d="M3 9h4l5-5v16l-5-5H3zM16 8q5 4 0 8M19 4q9 8 0 16"/>',FaceTime:'<rect x="2" y="6" width="13" height="13" rx="3"/><path d="m15 10 7-4v13l-7-4"/>',Mute:'<rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v3a7 7 0 0 0 14 0M12 20v3M2 2l20 20"/>',More:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',End:'<path d="M3 14q9-9 18 0l-2 4-5-2v-3h-4v3l-5 2z"/>',Keypad:'<rect x="4" y="3" width="16" height="19" rx="2"/><path d="M4 9h16M4 15h16M10 3v19M15 3v19"/>'};
 for(const name of Object.keys(icons)){const b=el('button','plot-control '+(name==='End'?'end':''));b.innerHTML='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">'+icons[name]+'</svg></span>'+name;b.setAttribute('aria-label',name);if(name==='End')b.onclick=()=>endCall(false);else if(['Speaker','Mute'].includes(name)){b.setAttribute('aria-pressed','false');b.onclick=()=>b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true'))}else b.disabled=true;call.querySelector('.plot-controls').append(b)}
 const subtitle=call.querySelector('.plot-subtitle'),status=call.querySelector('.plot-call-status');
+const voicePlayer=new Audio();voicePlayer.preload='auto';
 let callStart=0,callTimer,ending=false,audio=null,activeId='',beeped=false,audioContext;
 function clearAudio(){if(audio){audio.pause();audio.src='';audio=null}subtitle.textContent='';subtitle.classList.remove('visible')}
 function startCall(resume=false){if(s.callDone||!call.hidden)return;call.hidden=false;lineApp.inert=true;ending=false;activeId='';beeped=false;try{audioContext=new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch{};call.querySelector('.end').focus();
+ // Prime one reusable media element during the phone-button gesture (mobile Safari).
+ const firstVoice=window.PLOT1_SUBTITLES.find(c=>c.audioSrc);if(firstVoice){voicePlayer.src=firstVoice.audioSrc;voicePlayer.volume=0;voicePlayer.play().then(()=>{voicePlayer.pause();voicePlayer.currentTime=0;voicePlayer.volume=1}).catch(()=>{voicePlayer.volume=1})}
  if(!resume){s.callElapsed=0;state('plot1_calling')}callStart=performance.now()-s.callElapsed*1000;callTimer=setInterval(tickCall,100);tickCall()}
 function beep(){if(!audioContext)return;for(let i=0;i<3;i++){const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=480;g.gain.value=.04;o.connect(g);g.connect(audioContext.destination);const t=audioContext.currentTime+i*.45;o.start(t);o.stop(t+.22)}}
 function tickCall(){if(ending)return;let t=(performance.now()-callStart)/1000;s.callElapsed=t;save();if(t<3){status.textContent='Calling…';return}if(s.state!=='plot1_in_call')state('plot1_in_call');call.querySelector('h1').textContent='Techin';call.querySelector('p').textContent='mobile · Thailand';const sec=Math.floor(t-3);status.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
  if(audio){const current=window.PLOT1_SUBTITLES.find(c=>c.id===activeId);callStart=performance.now()-(3+current.startTime+audio.currentTime)*1000;return}
  const cue=window.PLOT1_SUBTITLES.find(c=>t-3>=c.startTime&&t-3<c.endTime);
- if(cue?.id!==activeId){clearAudio();activeId=cue?.id;if(cue){subtitle.textContent=cue.text;requestAnimationFrame(()=>subtitle.classList.add('visible'));if(cue.audioSrc){audio=new Audio(cue.audioSrc);audio.onpause=()=>subtitle.classList.remove('visible');audio.onplaying=()=>subtitle.classList.add('visible');audio.onended=()=>{callStart=performance.now()-(3+cue.endTime)*1000;clearAudio()};audio.play().catch(()=>{subtitle.classList.remove('visible')})}}}
+ if(cue?.id!==activeId){clearAudio();activeId=cue?.id;if(cue){subtitle.textContent=cue.text;requestAnimationFrame(()=>subtitle.classList.add('visible'));if(cue.audioSrc){audio=voicePlayer;audio.src=cue.audioSrc;audio.volume=1;audio.onpause=()=>subtitle.classList.remove('visible');audio.onplaying=()=>subtitle.classList.add('visible');audio.onended=()=>{callStart=performance.now()-(3+cue.endTime)*1000;clearAudio()};audio.play().catch(()=>{subtitle.classList.remove('visible')})}}}
  // An imported recording owns its cue's playback clock, including pause and duration.
  if(audio&&cue){callStart=performance.now()-(3+cue.startTime+audio.currentTime)*1000;return}
  const end=Math.max(...window.PLOT1_SUBTITLES.map(c=>c.endTime));if(t-3>=end+.5&&!beeped){beeped=true;beep()}if(t-3>=end+2.9)endCall(true)
