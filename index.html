@@ -68,7 +68,7 @@ const bakeryChat=fb.querySelector('#fb-chat');
 function openBakeryChat(){fb.querySelector('.fb-scroll').inert=true;bakeryChat.hidden=false;bakeryChat.inert=false;bakeryChat.querySelector('.chat-back').focus({preventScroll:true});}
 function closeBakeryChat(focus=true){bakeryChat.hidden=true;bakeryChat.inert=true;fb.querySelector('.fb-scroll').inert=false;if(focus)fb.querySelector('#fb-message').focus({preventScroll:true});}
 bakeryChat.querySelector('.chat-back').onclick=()=>closeBakeryChat();
-const BAKERY_HISTORY=[["27 June 2026 14:12", [[1, "你好，订餐500份。"], [0, "您好☺️，500份吗？？"], [0, "请问您需要什么款式呢？"], [1, "都可以。"], [0, "有喜欢的口味吗？或者需要避开的食材？"], [1, "你觉得好吃的就行。"], [0, "好的，请问怎么称呼您？"], [1, "Peekinak。"], [0, "好的，Peekinak小姐。请问送到哪里？"], [1, "3199 Maleenont Tower Floor 2"], [1, "不用写是谁订的。"]]], ["28 June 2026 15:34", [[1, "明天还有蛋糕吗？"], [0, "有的，您想订哪款呢？"], [1, "500份。"], [0, "抱歉，明天做不了这么多哦。大量订单需要提前预约。"], [1, "上次都可以。"], [0, "上次是提前订的。"], [1, "那明天能做多少？"], [0, "您实际需要多少份呢？"], [1, "你做多少，我买多少。"], [0, "谢谢您，不过也要给其他客人留一些☺️"], [1, "卖给谁不都是卖么？"], [0, "有些客人约好了明天来，不能让她们白跑一趟呐。"], [1, "……"], [1, "那一份。"], [0, "好的，您想吃什么口味？"], [1, "随便。"], [0, "草莓的可以吗？"], [1, "可以。"], [0, "明天几点来取？"], [1, "你几点在？"], [1, "我是问你们几点营业。"], [0, "早上10点开始营业～"], [1, "好。"]]]];
+const BAKERY_HISTORY=[];
 for(const [date,messages] of BAKERY_HISTORY){const history=bakeryChat.querySelector('#chat-history');history.append(fbElement('div','chat-date',date));for(const [outgoing,text] of messages){const row=fbElement('div','chat-row'+(outgoing?' outgoing':''));row.setAttribute('aria-label',outgoing?'Pheem':'Pan Pastry - ne');if(!outgoing){const avatar=fbElement('div','fb-avatar');avatar.setAttribute('aria-hidden','true');row.append(avatar)}row.append(fbElement('div','chat-bubble',text));history.append(row)}}
 </script>
 <script>
