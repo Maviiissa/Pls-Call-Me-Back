@@ -137,7 +137,7 @@ function playVoice(){return voicePlayer.play().then(()=>{retryAudio.hidden=true}
 retryAudio.onclick=()=>{audioContext?.resume();playVoice()};
 voicePlayer.onpause=()=>{clearCaption()};
 voicePlayer.onended=()=>{if(callContact==='plot6'){p6().audioEnded=true;p6().audioDuration=voicePlayer.currentTime;endedAudio6=performance.now();tickPlot6();return}clearCaption();voiceEndedAt=performance.now();s.activeCall={contact:callContact,audioEnded:true};save();if(callContact!=='parn')beep()};
-function startCall(resume=false,contact='techin'){resume=resume===true;if((contact==='parn'?s.plot3_parn_call_completed:s.callDone)||!call.hidden)return;callContact=contact;call.classList.remove('plot-call-dim');call.setAttribute('aria-label','与'+(contact==='parn'?'Parn':'Techin')+'的模拟通话');call.querySelector('h1').textContent=contact==='parn'?'Parn':'+66 33 222 1166';call.hidden=false;lineApp.inert=true;ending=false;activeId='';voiceStarted=false;voiceEndedAt=null;retryAudio.hidden=true;
+function startCall(resume=false,contact='techin'){resume=resume===true;if((contact==='parn'?s.plot3_parn_call_completed:s.callDone)||!call.hidden)return;window.dispatchEvent(new CustomEvent('phone:call-state',{detail:{active:true}}));callContact=contact;call.classList.remove('plot-call-dim');call.setAttribute('aria-label','与'+(contact==='parn'?'Parn':'Techin')+'的模拟通话');call.querySelector('h1').textContent=contact==='parn'?'Parn':'+66 33 222 1166';call.hidden=false;lineApp.inert=true;ending=false;activeId='';voiceStarted=false;voiceEndedAt=null;retryAudio.hidden=true;
  try{audioContext=new(window.AudioContext||window.webkitAudioContext)();audioContext.resume()}catch{};call.querySelector('.end').focus();
  voicePlayer.src=callContact==='parn'?window.PLOT3_PARN_CALL.audioSrc:window.PLOT1_CALL_AUDIO;voicePlayer.volume=0;
  // Unlock this same media element during the contact-button gesture on iOS.
@@ -163,7 +163,7 @@ function endCall(complete){if(callContact==='plot6'){endPlot6Call(complete);retu
  clearInterval(callTimer);s.activeCall=null;clearAudio();audioContext?.close();status.textContent='Call Ended';
  if(parn){if(complete){s.plot3_parn_call_completed=true;p3().parnCallCompleted=true;p3().parnCallReady=false;p3().awaitMorning=true;mark3('plot3_parn_call_completed')}else{p3().callElapsed=0;mark3('plot3_parn_call_unlocked')}}
  else if(complete){s.callDone=true;state('plot1_call_completed')}else{s.callElapsed=0;state('plot1_secretary_contact')}
- setTimeout(()=>{call.hidden=true;call.classList.remove('plot-call-dim');lineApp.inert=false;openLine();openLineChat(parn?'parn':'secretary');call.querySelector('h1').textContent='+66 33 222 1166';call.querySelector('p').textContent='Thailand';},1000)
+ setTimeout(()=>{call.hidden=true;window.dispatchEvent(new CustomEvent('phone:call-state',{detail:{active:false}}));call.classList.remove('plot-call-dim');lineApp.inert=false;openLine();openLineChat(parn?'parn':'secretary');call.querySelector('h1').textContent='+66 33 222 1166';call.querySelector('p').textContent='Thailand';},1000)
 }
 // Plot 2 shares this story save, LINE queue, and existing Facebook/Messenger UI.
 const data2=window.PLOT2_DATA;
@@ -433,10 +433,10 @@ function disableUnderlying6(){
 function restoreUnderlying6(){if(underlying6){for(const [n,value]of underlying6)n.inert=value;underlying6=null}}
 function begin6(){s.plot6={phase:'waiting',triggerAt:(s.plot5.completedAt||Date.now())+5000,elapsed:0,nodes:[],completed:false};mark6('plot6_unlocked')}
 function ringPlot6(){
- if(!p6()||p6().completed)return;callContact='plot6';ending=false;clearInterval(callTimer);s.activeCall=null;clearAudio();call.classList.remove('plot-call-dim','plot6-connected');call.classList.add('plot6-ringing');connectedAvatar6.hidden=true;call.hidden=false;incoming6.hidden=false;setParnIdentity6();disableUnderlying6();p6().phase='ringing';p6().triggeredAt=p6().triggeredAt||Date.now();mark6('plot6_ringing');if(window.PLOT6_CALL.audioSrc){voicePlayer.src=window.PLOT6_CALL.audioSrc;voicePlayer.preload='auto';voicePlayer.load()}accept6.focus({preventScroll:true})
+ if(!p6()||p6().completed)return;window.dispatchEvent(new CustomEvent('phone:call-state',{detail:{active:true}}));callContact='plot6';ending=false;clearInterval(callTimer);s.activeCall=null;clearAudio();call.classList.remove('plot-call-dim','plot6-connected');call.classList.add('plot6-ringing');connectedAvatar6.hidden=true;call.hidden=false;incoming6.hidden=false;setParnIdentity6();disableUnderlying6();p6().phase='ringing';p6().triggeredAt=p6().triggeredAt||Date.now();mark6('plot6_ringing');if(window.PLOT6_CALL.audioSrc){voicePlayer.src=window.PLOT6_CALL.audioSrc;voicePlayer.preload='auto';voicePlayer.load()}accept6.focus({preventScroll:true})
 }
 function acceptPlot6(resume=false){
- if(!p6()||p6().completed||(!resume&&p6().phase!=='ringing'))return;
+ if(!p6()||p6().completed||(!resume&&p6().phase!=='ringing'))return;window.dispatchEvent(new CustomEvent('phone:call-state',{detail:{active:true}}));
  clearInterval(callTimer);clearAudio();s.activeCall=null;callContact='plot6';ending=false;activeId='';endedAudio6=null;call.classList.remove('plot-call-dim','plot6-ringing');call.classList.add('plot6-connected');incoming6.hidden=true;connectedAvatar6.hidden=false;call.hidden=false;setParnIdentity6();disableUnderlying6();call.querySelector('p').textContent='正在通话';
  if(!resume){p6().elapsed=0;p6().audioEnded=false;p6().audioDuration=null}if(resume&&p6().audioEnded)endedAudio6=performance.now()-Math.max(0,p6().elapsed-p6().audioDuration)*1000;clock6=performance.now()-p6().elapsed*1000;p6().phase='in_call';p6().acceptedAt=p6().acceptedAt||Date.now();mark6('plot6_in_call');
  if(window.PLOT6_CALL.audioSrc&&!p6().audioEnded){const changed=voicePlayer.getAttribute('src')!==window.PLOT6_CALL.audioSrc;if(changed)voicePlayer.src=window.PLOT6_CALL.audioSrc;voicePlayer.volume=1;const play=()=>{if(callContact==='plot6'&&!ending){voicePlayer.currentTime=p6().elapsed;playVoice()}};if(voicePlayer.readyState>=1)play();else{voicePlayer.addEventListener('loadedmetadata',play,{once:true});if(changed)voicePlayer.load();playVoice()}}
@@ -455,7 +455,7 @@ function tickPlot6(){
 }
 function endPlot6Call(complete){
  if(ending)return;const last=Math.max(...window.PLOT6_CALL.subtitles.map(c=>c.endTime));if(p6().elapsed>=last)complete=true;
- ending=true;clearInterval(callTimer);clearAudio();delete subtitle.dataset.cue;incoming6.hidden=true;connectedAvatar6.hidden=true;call.classList.remove('plot6-ringing','plot6-connected','plot-call-dim');call.hidden=true;s.activeCall=null;restoreUnderlying6();hideApps();unlock();
+ ending=true;clearInterval(callTimer);clearAudio();delete subtitle.dataset.cue;incoming6.hidden=true;connectedAvatar6.hidden=true;call.classList.remove('plot6-ringing','plot6-connected','plot-call-dim');call.hidden=true;window.dispatchEvent(new CustomEvent('phone:call-state',{detail:{active:false}}));s.activeCall=null;restoreUnderlying6();hideApps();unlock();
  if(complete){p6().phase='completed';p6().completed=true;mark6('plot6_call_completed');mark6('plot6_completed')}
  else{p6().phase='paused';mark6('plot6_paused')}
  save()
@@ -546,7 +546,7 @@ function restoreGame(){
  if(s.plot6&&['ringing','in_call'].includes(s.plot6.phase)){if(s.plot6.phase==='ringing')ringPlot6();else acceptPlot6(true)}
  else if(pendingCall){
   if(!phone.classList.contains('unlocked'))unlock();
-  if(pendingCall.audioEnded){callContact=pendingCall.contact;ending=false;call.hidden=false;call.setAttribute('aria-label','与'+(callContact==='parn'?'Parn':'Techin')+'的模拟通话');call.querySelector('h1').textContent=callContact==='parn'?'Parn':'Techin';endCall(true)}
+  if(pendingCall.audioEnded){window.dispatchEvent(new CustomEvent('phone:call-state',{detail:{active:true}}));callContact=pendingCall.contact;ending=false;call.hidden=false;call.setAttribute('aria-label','与'+(callContact==='parn'?'Parn':'Techin')+'的模拟通话');call.querySelector('h1').textContent=callContact==='parn'?'Parn':'Techin';endCall(true)}
   else startCall(true,pendingCall.contact)
  }else if(ui.app==='call'){if(s.plot6){hideApps();unlock()}else{openLine();openLineChat(ui.contact==='parn'?'parn':'secretary')}}
  restoring=false;process();compose();save()

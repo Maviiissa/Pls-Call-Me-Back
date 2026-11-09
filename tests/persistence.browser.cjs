@@ -7,7 +7,7 @@ const URL=process.env.GAME_URL||'http://127.0.0.1:8000',KEY='pheem.plot1.v1';
  async function pageFor(seed,key=KEY){
   const context=await browser.newContext();
   if(seed)await context.addInitScript(({seed,key})=>{if(!sessionStorage.getItem('fixture')){localStorage.setItem(key,JSON.stringify(seed));sessionStorage.setItem('fixture','1')}},{seed,key});
-  await context.addInitScript(()=>{const play=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){window.resumeAudio=this;return play.call(this)}});
+  await context.addInitScript(()=>{const play=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){if(this.id!=='background-music')window.resumeAudio=this;return play.call(this)}});
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.clock.install();await page.goto(URL);return page;
  }
  const read=p=>p.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);

@@ -62,3 +62,12 @@ CHROMIUM_PATH=/usr/bin/chromium node tests/plot7.browser.cjs
 ```
 
 The test seeds a completed Plot 6 and runs every supplied Plot 7 turn. It uses test-only network image fixtures for the four user asset URLs, checks that failed images do not count as viewed, and verifies restored photos, manual sends (including image messages), correct contacts, proposal handoff, wedding date/posts, and the final home-screen ending only after both wedding posts are viewed. Refresh mid-story and after completion must retain progress without duplicate messages/posts. `TEST_SCREENSHOT` optionally writes the final home screen screenshot. Production requires the actual four JPGs listed in PLOT7.md; no substitute images are installed.
+
+Background music:
+
+```sh
+CHROMIUM_PATH=/usr/bin/chromium node tests/music.browser.cjs
+CHROMIUM_PATH=/usr/bin/chromium node tests/music-audio.browser.cjs
+```
+
+These verify lock/home synchronization, first-gesture playback, manual pause/off, app and lock navigation, saved playback position/volume, outgoing and incoming call interruptions, resume only when appropriate, and completion once without replay after reload. The first uses test-only audio routes; the second plays the user's original complete `assets/Music.m4a`, checks duration and seeks near its natural ending. `TEST_SCREENSHOT_PREFIX` optionally saves the player on both screens. See MUSIC.md for the original file hash and playback rules.
